@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@100..700&family=Athiti:wght@200;300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@100;200;300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-mOrange: #D8560E;
+  --color-mGreen: #CBD183;
+  --color-mYellow: #EFCE7B; 
+  --color-mPink: #D17089;
+  --color-mPurple: #D3C2CD;
+  --color-mBlue: #92A2A6;
+  --color-mGrey: #D9D9D9;
+}
