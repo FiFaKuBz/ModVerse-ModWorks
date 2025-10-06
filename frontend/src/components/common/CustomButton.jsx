@@ -6,7 +6,9 @@ export default function CustomButton({ children, variant = "secondary", onClick 
   const variants = {
     share: `${base} border border-mOrange text-black bg-white hover:bg-orange-50`,
     edit: `${base} border border-black bg-mOrange text-black hover:bg-orange-700`,
-  };
+    follow: `${base} border border-black bg-mOrange text-black hover:bg-orange-700`,
+    default: `${base} border border-gray-400 text-gray-700`,
+};
 
   return (
     <button onClick={onClick} className={variants[variant]}>
