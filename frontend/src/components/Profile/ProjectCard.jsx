@@ -60,10 +60,10 @@ export default function ProjectCard({ project }) {
       <div className="flex flex-col justify-between flex-grow px-5 pt-4 pb-3">
         {/* Text */}
         <div>
-          <h3 className="text-[1rem] sm:text-[1.1rem] font-semibold text-black truncate">
+          <h3 className="text-[1.2rem] sm:text-[1.25rem] font-An font-semibold text-black truncate">
             {project.title || "Project title"}
           </h3>
-          <p className="text-[0.9rem] text-black truncate">
+          <p className="text-[0.9rem] font-IBM text-black truncate">
             {project.contributor || "Project Contributor"}
           </p>
         </div>
@@ -73,7 +73,7 @@ export default function ProjectCard({ project }) {
           {project.tags?.map((tag, i) => (
             <span
               key={i}
-              className={`px-3 h-[26px] rounded-[20px] flex items-center justify-center text-xs sm:text-sm ${tagColors[tag] || "bg-gray-100 text-gray-600"}`}
+              className={`px-3 h-[26px] rounded-[20px] flex items-center justify-center text-[0.9rem] sm:text-[1.rem] font-IBM ${tagColors[tag] || "bg-gray-100 text-black"}`}
             >
               {tag}
             </span>

@@ -1,5 +1,8 @@
+import { useState } from "react";
 import CustomButton from "../common/CustomButton";
 import { Menu } from "lucide-react";
+import ProfileOptionsModal from "../common/ProfileOptionsModal";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfileStats({
   followers = 0,
@@ -9,32 +12,70 @@ export default function ProfileStats({
   showLikes = false,
   showFollow = false,
   showMenu = false,
+  onShare, // passed from ProfilePage
+  onEdit,  // passed from ProfilePage
 }) {
+  const navigate = useNavigate();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+
+  const handleFollowToggle = () => {
+    setIsFollowing((prev) => !prev);
+    // 🔸 Future backend call here if needed
+  };
+
   return (
-    <div className="flex flex-col items-center mt-4 px-4 text-center font-['Anuphan']">
-      {/* Followers / Following / Likes */}
+    <div className="flex flex-col items-center mt-4 px-4 text-center font-An">
+      {/* Followers / Following */}
       <div className="flex flex-wrap justify-center gap-2 text-[16px] sm:text-[18px] md:text-[20px] text-black font-semibold">
         <p>
           {followers} followers | {following} following
         </p>
       </div>
+
+      {/* Likes */}
       {showLikes && (
-        <div className="mt-1">
-        <p className="text-base sm:text-sm text-gray-700 mt-1 text-center font-medium">
+        <p className="text-[16px] sm:text-[18px] md:text-[20px] text-black mt-1 text-center font-An">
           {likes} Likes
         </p>
-      </div>)}
+      )}
 
-      {/* Buttons Row */}
-      <div className="flex gap-[37px] mt-4 flex-wrap justify-center">
-        <CustomButton variant="share">Share</CustomButton>
+      {/* Buttons */}
+      <div className="flex gap-[37px] mt-4 flex-wrap justify-center relative text-[16px] sm:text-[18px] md:text-[20px] text-black mt-1 text-center font-medium font-IBM">
+        {/* SHARE */}
+        <CustomButton variant="share" onClick={onShare}>
+          Share
+        </CustomButton>
 
-        {showEdit && <CustomButton variant="edit">Edit Profile</CustomButton>}
+        {/* EDIT PROFILE */}
+        {showEdit && (
+          <CustomButton
+            variant="edit"
+            onClick={onEdit ? onEdit : () => navigate("/edit-profile")}
+          >
+            Edit Profile
+          </CustomButton>
+        )}
 
-        {showFollow && <CustomButton variant="follow">Follow</CustomButton>}
+        {/* FOLLOW */}
+        {showFollow && (
+          <CustomButton
+            variant="follow"
+            onClick={handleFollowToggle}
+            className={`${
+              isFollowing
+                ? "bg-gray-200 text-black border border-gray-400 hover:bg-gray-300"
+                : ""
+            }`}
+          >
+            {isFollowing ? "Following" : "Follow"}
+          </CustomButton>
+        )}
 
+        {/* MENU (Other User Only) */}
         {showMenu && (
           <button
+            onClick={() => setIsOptionsOpen(true)}
             className="
               absolute 
               right-[calc(50%-170px)] 
@@ -49,6 +90,12 @@ export default function ProfileStats({
           </button>
         )}
       </div>
+
+      {/* Profile Options Modal */}
+      <ProfileOptionsModal
+        isOpen={isOptionsOpen}
+        onClose={() => setIsOptionsOpen(false)}
+      />
     </div>
   );
 }
