@@ -100,7 +100,7 @@ GET /logout
 
 #### Endpoint
 ```
-GET /me
+GET /profile
 ```
 
 #### Description
