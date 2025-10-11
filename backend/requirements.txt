@@ -6,6 +6,7 @@ click==8.3.0
 colorama==0.4.6
 dnspython==2.8.0
 Flask==3.1.2
+flask-cors==6.0.1
 Flask-PyMongo==3.0.1
 google-auth==2.41.1
 idna==3.10

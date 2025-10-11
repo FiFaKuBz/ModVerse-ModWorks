@@ -13,7 +13,7 @@ def init_user_routes(model):
     global user_model
     user_model = model
 
-@user_bp.route("/me")
+@user_bp.route("/profile")
 def whoami():
     """แสดงข้อมูลผู้ใช้ที่ล็อกอินอยู่"""
     u = session.get("user")

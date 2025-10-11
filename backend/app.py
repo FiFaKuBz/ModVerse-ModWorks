@@ -5,8 +5,10 @@ from models.user import UserModel
 from auth.google import GoogleOAuth
 from routes.auth_routes import auth_bp, init_auth_routes
 from routes.users_routes import user_bp, init_user_routes
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app) 
 app.config.from_object(Config)
 
 # เชื่อมต่อ MongoDB
