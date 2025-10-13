@@ -6,7 +6,7 @@ export default function BackButton() {
   return (
     <button
       onClick={() => navigate(-1)}
-      className="absolute left-2 p-2 rounded-full hover:bg-gray-100"
+      className="fixed left-2 p-2 rounded-full hover:bg-gray-100"
     >
       <ChevronLeft className="w-12 h-12" />
     </button>

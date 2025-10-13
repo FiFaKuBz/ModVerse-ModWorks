@@ -42,7 +42,7 @@ export default function ProjectCard({ project }) {
       "
     >
       {/* Image */}
-      <div className="relative w-full aspect-[262/94] bg-gray-100 overflow-hidden">
+      <div className="relative w-full aspect-[262/94] bg-mGrey overflow-hidden">
         {project.image ? (
           <img
             src={project.image}
@@ -51,7 +51,7 @@ export default function ProjectCard({ project }) {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-            No Image
+            NO IMG
           </div>
         )}
       </div>
@@ -60,10 +60,10 @@ export default function ProjectCard({ project }) {
       <div className="flex flex-col justify-between flex-grow px-5 pt-4 pb-3">
         {/* Text */}
         <div>
-          <h3 className="text-[1rem] sm:text-[1.1rem] font-semibold text-gray-900 truncate">
+          <h3 className="text-[1rem] sm:text-[1.1rem] font-semibold text-black truncate">
             {project.title || "Project title"}
           </h3>
-          <p className="text-[0.9rem] text-gray-500 truncate">
+          <p className="text-[0.9rem] text-black truncate">
             {project.contributor || "Project Contributor"}
           </p>
         </div>

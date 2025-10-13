@@ -2,6 +2,10 @@
 @import "tailwindcss";
 
 @theme {
+  --font-A1: 'Anuphan', sans-serif;
+  --font-A2: 'Athiti', sans-serif;
+  --font-A3: 'IBM Plex Sans Thai', sans-serif;
+
   --color-mOrange: #D8560E;
   --color-mGreen: #CBD183;
   --color-mYellow: #EFCE7B; 

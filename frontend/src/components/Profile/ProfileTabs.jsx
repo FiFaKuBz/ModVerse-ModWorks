@@ -1,18 +1,28 @@
-export default function ProfileTabs({ activeTab, setActiveTab }) {
-  const tabs = ["Created", "Saved", "Recruiter Requests"];
+export default function ProfileTabs({
+  activeTab,
+  setActiveTab,
+  isOwner = true,
+  showSavedPublicly = true,
+}) {
+  const tabs = [
+    "Created",
+    ...(isOwner || showSavedPublicly ? ["Saved"] : []),
+    ...(isOwner ? ["Recruiter Requests"] : []),
+  ];
 
   return (
-    <div className="flex justify-center mt-6 gap-[37px] overflow-x-auto px-2">
+    <div className="flex justify-center mt-4 gap-[37px] text-[16px] sm:text-[18px] md:text-[20px] font-['Anuphan']">
       {tabs.map((tab) => (
         <button
           key={tab}
           onClick={() => setActiveTab(tab)}
-          className="relative px-1 pb-2 text-xs sm:text-sm md:text-base font-medium text-black whitespace-nowrap"
+          className={`relative pb-2 transition-colors duration-200 ${
+            activeTab === tab
+              ? "font-semibold text-black after:content-[''] after:absolute after:left-0 after:bottom-0 after:w-full after:h-[2px] after:bg-black"
+              : "text-gray-500 hover:text-black"
+          }`}
         >
           {tab}
-          {activeTab === tab && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.75 bg-black rounded-full"></span>
-          )}
         </button>
       ))}
     </div>
