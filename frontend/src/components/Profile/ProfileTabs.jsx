@@ -11,7 +11,7 @@ export default function ProfileTabs({
   ];
 
   return (
-    <div className="flex justify-center mt-4 gap-[37px] text-[16px] sm:text-[18px] md:text-[20px] font-['Anuphan']">
+    <div className="flex justify-center mt-4 gap-[37px] text-[16px] sm:text-[18px] md:text-[20px] font-An">
       {tabs.map((tab) => (
         <button
           key={tab}

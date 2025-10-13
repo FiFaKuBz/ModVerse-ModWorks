@@ -15,18 +15,18 @@ export default function ProfileHeader({ profile }) {
       </div>
 
       {/* Username */}
-      <h2 className="mt-3 text-[22px] sm:text-[24px] md:text-[26px] font-semibold text-mOrange truncate max-w-[90%]">
+      <h2 className="mt-3 text-[24px] sm:text-[26px] md:text-[28px] font-At font-semibold text-mOrange truncate max-w-[90%]">
         {profile?.username || "Username"}
       </h2>
 
       {/* Description / Bio */}
-      <p className="text-[14px] sm:text-[16px] md:text-[18px] text-black truncate max-w-[90%]">
+      <p className="text-[14px] sm:text-[16px] md:text-[18px] font-IBM text-black truncate max-w-[90%]">
         {profile?.description || "description"}
       </p>
 
       {/* Email (only visible for self-view) */}
       {profile?.email && (
-        <p className="text-xs sm:text-sm text-black truncate max-w-[90%] opacity-80">
+        <p className="text-xs sm:text-sm font-IBM text-black truncate max-w-[90%] opacity-80">
           {profile.email}
         </p>
       )}

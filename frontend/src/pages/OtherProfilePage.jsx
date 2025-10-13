@@ -5,6 +5,8 @@ import ProfileHeader from "../components/Profile/ProfileHeader";
 import ProfileStats from "../components/Profile/ProfileStats";
 import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
+import ShareModal from "../components/common/ShareModal";
+import ProfileOptionsModal from "../components/common/ProfileOptionsModal";
 
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g., /profile/lara-cooper
@@ -45,6 +47,10 @@ export default function OtherProfilePage() {
     },
   ];
 
+  const [isShareOpen, setIsShareOpen] = useState(false);
+
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+
   // --- Tab logic ---
   const [activeTab, setActiveTab] = useState("Created");
 
@@ -71,6 +77,7 @@ export default function OtherProfilePage() {
           showEdit={false}
           showFollow={true}
           showMenu={true}
+          onShare={() => setIsShareOpen(true)}
         />
 
         {/* Tabs */}
@@ -105,6 +112,15 @@ export default function OtherProfilePage() {
           </div>
         </div>
       </div>
+      <ProfileOptionsModal
+        isOpen={isOptionsOpen}
+        onClose={() => setIsOptionsOpen(false)}
+      />
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        type="profile"
+      />
     </div>
   );
 }
