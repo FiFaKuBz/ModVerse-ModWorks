@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_pymongo import PyMongo
 from config import Config
 from models.user import UserModel
@@ -35,9 +35,13 @@ init_user_routes(user_model)
 app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
 
-@app.route("/")
-def index():
-    return "หน้าแรก"
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
