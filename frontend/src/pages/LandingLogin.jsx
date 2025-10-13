@@ -41,7 +41,7 @@ export default function LandingLogin() {
               type="button"
               onClick={() => {
                 // redirects browser to backend which starts Google OAuth
-                window.location.href = "http://localhost:5000/login";
+                window.location.href = "/login";
               }}
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-20 py-3 text-sm font-anuphan font-semibold text-neutral-800 hover:bg-neutral-50 active:scale-[.99] transition"
             >
