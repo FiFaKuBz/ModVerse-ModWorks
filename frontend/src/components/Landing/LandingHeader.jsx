@@ -33,14 +33,7 @@ export default function LandingHeader() {
 
         {/* เมนู */}
         <nav className="flex items-center gap-4 font-anuphan font-semibold">
-        
-          {/* ไปหน้า ProfilePage */}
-          <button
-            onClick={() => navigate("/profile")}
-            className="inline-flex items-center gap-2 text-sm hover:opacity-80"
-          >
-            <UserIcon />
-          </button>
+      
 
           {/* ไปหน้า LandingAbout */}
           <Link
@@ -50,14 +43,6 @@ export default function LandingHeader() {
             About
           </Link>
 
-          {/* ปุ่ม Topics (เดี๋ยวจะมี popup ทีหลัง) */}
-          <button
-            type="button"
-            onClick={() => alert("Topic popup coming soon!")}
-            className="text-sm border border-neutral-300 rounded-md px-3 py-1.5 bg-white hover:bg-neutral-50"
-          >
-            Topics▾
-          </button>
         </nav>
       </div>
     </header>

@@ -13,10 +13,10 @@ function App() {
     <Router>
       <Routes>
         {/* 🟢 หน้าใหม่: หน้า Landing Login */}
-        <Route path="/landing-login" element={<LandingLogin />} />
+        <Route path="/" element={<LandingLogin />} />
 
         {/* 🔵 หน้า Home เดิม */}
-        <Route path="/" element={<h1 className="text-center mt-10">Home</h1>} />
+        {/* <Route path="/" element={<h1 className="text-center mt-10">Home</h1>} /> */}
 
         {/* 🔵 หน้าของ Profile ที่มีอยู่แล้ว */}
         <Route path="/profile" element={<ProfilePage />} />

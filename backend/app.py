@@ -7,7 +7,7 @@ from routes.auth_routes import auth_bp, init_auth_routes
 from routes.users_routes import user_bp, init_user_routes
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend/dist')
 CORS(app) 
 app.config.from_object(Config)
 
