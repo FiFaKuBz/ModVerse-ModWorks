@@ -1,6 +1,6 @@
 from flask import Flask, send_from_directory
 from flask_pymongo import PyMongo
-from config import Config
+from .config import Config
 from models.user import UserModel
 from auth.google import GoogleOAuth
 from routes.auth_routes import auth_bp, init_auth_routes
