@@ -1,0 +1,17 @@
+# .gitignore
+
+# 1. Virtual Environment
+# ไฟล์ทั้งหมดในโฟลเดอร์ venv
+venv/
+
+# 2. Python Cache Files
+# ไฟล์ .pyc และโฟลเดอร์ __pycache__
+__pycache__/
+*.pyc
+
+# 3. Environment Variables (สำคัญมากสำหรับความปลอดภัย!)
+# ไม่ควร Push Client ID/Secret ขึ้นไป
+.env
+
+# 4. Logs (ถ้ามี)
+*.log
