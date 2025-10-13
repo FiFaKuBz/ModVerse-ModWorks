@@ -6,6 +6,7 @@ from auth.google import GoogleOAuth
 from routes.auth_routes import auth_bp, init_auth_routes
 from routes.users_routes import user_bp, init_user_routes
 from flask_cors import CORS
+import os
 
 app = Flask(__name__, static_folder='../frontend/dist')
 CORS(app) 
@@ -39,4 +40,6 @@ def index():
     return "หน้าแรก"
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+    # app.run(debug=True, use_reloader=False)
