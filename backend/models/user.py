@@ -64,4 +64,4 @@ class UserModel:
         """
         if isinstance(user_id, str):
             user_id = ObjectId(user_id)
-        return self.users.find_one({"_id": user_id}, {"_id": 0})
+        return self.users.find_one({"_id": user_id}, {"_id": 0}) #kkk
