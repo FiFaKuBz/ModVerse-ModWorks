@@ -1,17 +1,19 @@
-import { useState } from "react";
+// src/pages/OtherProfilePage.jsx
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+
 import BackButton from "../components/common/BackButton";
 import ProfileHeader from "../components/Profile/ProfileHeader";
 import ProfileStats from "../components/Profile/ProfileStats";
 import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
-import ProfileOptionsModal from "../components/common/ProfileOptionsModal";
+import Pagination from "../components/common/Pagination"; // ✅
 
 export default function OtherProfilePage() {
-  const { username } = useParams(); // e.g., /profile/lara-cooper
+  const { username } = useParams(); // e.g. /profile/lara-cooper
 
-  // --- Mock data (replace with backend fetch later) ---
+  // --- Mock profile (replace with backend later) ---
   const userProfile = {
     avatar: "",
     username: username || "Lara Cooper",
@@ -19,23 +21,26 @@ export default function OtherProfilePage() {
     followers: 100,
     following: 10,
     likes: 1000,
-    showSavedPublicly: true, // controls visibility of Saved tab
+    showSavedPublicly: true,
   };
 
-  // --- Projects (created & saved) ---
+  // --- Mock projects ---
   const createdProjects = [
     {
       title: "Data Visualization Hub",
       contributor: "Lara Cooper",
       tags: ["UX/UI", "Database"],
-      image: "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
     },
     {
       title: "Urban Mobility Planner",
       contributor: "Lara Cooper",
       tags: ["Transportation", "UX/UI"],
-      image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
+      image:
+        "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
     },
+    // add more items if you want to see multiple pages
   ];
 
   const savedProjects = [
@@ -43,40 +48,46 @@ export default function OtherProfilePage() {
       title: "AI Diagnostic Assistant",
       contributor: "Noah",
       tags: ["Algorithm", "Digital Circuit"],
-      image: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
     },
   ];
 
+  // --- UI state ---
   const [isShareOpen, setIsShareOpen] = useState(false);
-
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-
-  // --- Tab logic ---
   const [activeTab, setActiveTab] = useState("Created");
 
-  let projectsToShow = [];
-  if (activeTab === "Created") projectsToShow = createdProjects;
-  else if (activeTab === "Saved") projectsToShow = savedProjects;
+  // --- Pagination (9 per page) ---
+  const PAGE_SIZE = 9;
+  const [page, setPage] = useState(1);
+
+  // reset to first page when tab/data changes
+  useEffect(() => setPage(1), [activeTab, createdProjects.length, savedProjects.length]);
+
+  // choose dataset based on tab
+  const list = activeTab === "Saved" ? savedProjects : createdProjects;
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
 
   return (
     <div className="relative min-h-screen bg-white text-gray-900 font-['Anuphan']">
-      {/* Back button */}
       <BackButton />
 
-      {/* Page container */}
       <div className="w-full max-w-[1600px] mx-auto px-[clamp(1rem,4vw,5rem)]">
-        {/* Profile info */}
+        {/* Profile header */}
         <ProfileHeader profile={userProfile} />
 
-        {/* Stats & Buttons */}
+        {/* Stats & Actions (Share/Follow/Menu handled inside ProfileStats) */}
         <ProfileStats
           followers={userProfile.followers}
           following={userProfile.following}
           likes={userProfile.likes}
-          showLikes={true}
+          showLikes
           showEdit={false}
-          showFollow={true}
-          showMenu={true}
+          showFollow
+          showMenu
           onShare={() => setIsShareOpen(true)}
         />
 
@@ -86,23 +97,15 @@ export default function OtherProfilePage() {
           setActiveTab={setActiveTab}
           isOwner={false}
           showSavedPublicly={userProfile.showSavedPublicly}
+          showRecruiter={false}
         />
 
-        {/* Divider + Cards grid */}
+        {/* Grid */}
         <div className="mt-8 pt-8 border-t border-transparent">
-          <div
-            className="
-              grid
-              grid-cols-1
-              sm:grid-cols-2
-              lg:grid-cols-3
-              gap-[59px]
-              justify-center
-            "
-          >
-            {projectsToShow.length > 0 ? (
-              projectsToShow.map((project, idx) => (
-                <ProjectCard key={idx} project={project} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[59px] justify-items-center mx-auto">
+            {pageItems.length ? (
+              pageItems.map((project, idx) => (
+                <ProjectCard key={`${project.title}-${idx}`} project={project} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">
@@ -110,12 +113,21 @@ export default function OtherProfilePage() {
               </p>
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex justify-center">
+              <Pagination
+                totalPages={totalPages}
+                currentPage={safePage}   // ensure prop names match your Pagination component
+                onChange={setPage}
+              />
+            </div>
+          )}
         </div>
       </div>
-      <ProfileOptionsModal
-        isOpen={isOptionsOpen}
-        onClose={() => setIsOptionsOpen(false)}
-      />
+
+      {/* Share (profile) */}
       <ShareModal
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
