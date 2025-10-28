@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
-import TopicDropdown from "../components/topics/TopicDropdown";
 import Pagination from "../components/common/Pagination";
 import { useSearchParams } from "react-router-dom";
 
