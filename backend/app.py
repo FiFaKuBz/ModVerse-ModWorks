@@ -32,8 +32,8 @@ init_auth_routes(google_oauth, user_model)
 init_user_routes(user_model)
 
 # ลงทะเบียน blueprints
-app.register_blueprint(auth_bp)
-app.register_blueprint(user_bp)
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(user_bp, url_prefix='/api/users')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -47,3 +47,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
     # app.run(debug=True, use_reloader=False)
+    
