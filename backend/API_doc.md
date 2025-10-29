@@ -6,7 +6,7 @@
 
 #### Endpoint
 ```
-GET /login
+GET /api/auth/login
 ```
 
 #### Description
@@ -24,7 +24,7 @@ GET /login
 
 #### Endpoint
 ```
-GET /auth/callback
+GET /api/auth/callback
 ```
 
 #### Description
@@ -42,7 +42,7 @@ Query Parameters:
 #### Response
 
 ##### Success Response (200 OK)
-Redirect to `/profile` และสร้าง session ที่มีข้อมูล:
+Redirect to `/api/users/profile` และสร้าง session ที่มีข้อมูล:
 ```json
 {
   "user": {
@@ -80,7 +80,7 @@ Redirect to `/profile` และสร้าง session ที่มีข้อ
 
 #### Endpoint
 ```
-GET /logout
+GET /api/auth/logout
 ```
 
 #### Description
@@ -100,7 +100,7 @@ GET /logout
 
 #### Endpoint
 ```
-GET /profile
+GET /api/users/profile
 ```
 
 #### Description
@@ -141,7 +141,7 @@ GET /profile
 
 #### Endpoint
 ```
-GET /dashboard
+GET /api/users/dashboard
 ```
 
 #### Description

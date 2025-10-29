@@ -24,7 +24,7 @@ def login():
     
     return redirect(url)
 
-@auth_bp.route("/auth/callback")
+@auth_bp.route("/callback")
 def callback():
     """รับ callback จาก Google หลังผู้ใช้ยืนยันตัวตน"""
     # ตรวจสอบ state
