@@ -68,7 +68,7 @@ def callback():
     session.pop("oauth_state", None)
     session.pop("oauth_nonce", None)
     
-    return redirect(url_for("user.whoami"))
+    return redirect("/showcase")
 
 @auth_bp.route("/logout")
 def logout():
