@@ -5,6 +5,7 @@ from .models.user import UserModel
 from .auth.google import GoogleOAuth
 from .routes.auth_routes import auth_bp, init_auth_routes
 from .routes.users_routes import user_bp, init_user_routes
+from .routes.search_routes import search_bp  # NEW
 from flask_cors import CORS
 import os
 
@@ -34,6 +35,7 @@ init_user_routes(user_model)
 # ลงทะเบียน blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(user_bp)
+app.register_blueprint(search_bp)  # NEW
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
