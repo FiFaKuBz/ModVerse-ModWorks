@@ -102,7 +102,7 @@ export default function OtherProfilePage() {
 
         {/* Grid */}
         <div className="mt-8 pt-8 border-t border-transparent">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[59px] justify-items-center mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, idx) => (
                 <ProjectCard key={`${project.title}-${idx}`} project={project} />

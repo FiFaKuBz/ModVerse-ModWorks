@@ -109,7 +109,7 @@ export default function ShowcasePage() {
           <div className="py-20 text-center text-gray-400">Loading…</div>
         ) : pageItems.length ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[59px] justify-items-center mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-[59px] justify-center mx-auto">
               {pageItems.map(p => <ProjectCard key={p.id} project={p} />)}
             </div>
 
