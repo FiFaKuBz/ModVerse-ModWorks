@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
         <div className="mt-8 pt-8 border-t border-transparent">
           {/* ✅ center each card AND the grid block */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[59px] justify-items-center mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, i) => (
                 <ProjectCard key={`${project.title}-${i}`} project={project} />

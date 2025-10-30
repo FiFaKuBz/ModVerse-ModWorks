@@ -1,3 +1,4 @@
+// src/App.jsx
 import { Routes, Route } from "react-router-dom";
 
 import ProfilePage from "./pages/ProfilePage";
@@ -5,7 +6,7 @@ import OtherProfilePage from "./pages/OtherProfilePage";
 import EditProfilePage from "./pages/EditProfilePage";
 import LandingLogin from "./pages/LandingLogin";
 import ShowcasePage from "./pages/ShowCasePage";
-
+import SettingsPage from "./pages/SettingsPage";
 import { IdleWarningModal } from "./session/IdleWarningModal";
 import ProtectedRoute from "./session/ProtectedRoute";
 
@@ -13,19 +14,20 @@ function App() {
   return (
     <>
       <Routes>
-        {/* Landing Login */}
+        {/* Public */}
         <Route path="/" element={<LandingLogin />} />
 
-        {/* Showcase Page */}
-        <Route path="/showcase" element={<ShowcasePage />} />
-
-        {/* Profile Pages */}
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/profile/:username" element={<OtherProfilePage />} />
-        <Route path="/edit-profile" element={<EditProfilePage />} />
+        {/* Everything under this gate requires a live session */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/showcase" element={<ShowcasePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/:username" element={<OtherProfilePage />} />
+          <Route path="/edit-profile" element={<EditProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
       </Routes>
 
-      {/* Session Modal can be global */}
+      {/* lives under SessionProvider (see main.jsx) */}
       <IdleWarningModal />
     </>
   );

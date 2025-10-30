@@ -1,104 +1,102 @@
+// src/auth/TwoFactorMock.jsx
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 
-const MOCK_CODE = "123456";
+const STATIC_OTP = "246810"; // static code for mock
 
-export default function TwoFactorMock({ onSuccess, onBack }) {
+export default function TwoFactorMock({
+  onSuccess,      // called when OTP correct
+  onBack,         // go back to Google card
+  onMaxFail,      // called when attempts exhausted
+  maxAttempts = 3,
+}) {
   const [code, setCode] = useState("");
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-  const [countdown, setCountdown] = useState(30); // resend cooldown
+  const [err, setErr] = useState("");
+  const [attemptsLeft, setAttemptsLeft] = useState(maxAttempts);
   const inputRef = useRef(null);
 
   useEffect(() => {
     inputRef.current?.focus();
-    // simulate sending code
-    const t = setTimeout(() => setSent(true), 350);
-    return () => clearTimeout(t);
   }, []);
 
-  // simple countdown for "Resend"
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
+  const submit = (e) => {
+    e?.preventDefault?.();
+    if (attemptsLeft <= 0) return;
 
-  const verify = () => {
-    if (code.trim() === MOCK_CODE) {
-      setError("");
+    // eslint-disable-next-line no-console
+    console.log("TwoFactorMock submit:", { code, attemptsLeft });
+
+    if (code.trim() === STATIC_OTP) {
+      setErr("");
       onSuccess?.();
+      return;
+    }
+
+    const next = Math.max(0, attemptsLeft - 1);
+    setAttemptsLeft(next);
+    if (next === 0) {
+      setErr("Too many incorrect attempts. Returning to sign in…");
+      onMaxFail?.();
     } else {
-      setError("Invalid code. Please try again.");
+      setErr(`Incorrect code. ${next} attempt(s) left.`);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") verify();
-  };
-
-  const resend = () => {
-    if (countdown > 0) return;
-    setCountdown(30);
-    setSent(true);
-    // You can toast here "New code sent"
-  };
-
   return (
-    <div className="min-h-screen bg-mOrange text-white">
-      {/* keep your landing header look consistent if you want it here */}
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-white/90 hover:text-white transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back
-        </button>
-      </div>
+    <div className="min-h-screen bg-white text-neutral-900 flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-black p-8">
+        <h1 className="text-xl font-semibold mb-1">Two-Factor Verification</h1>
+        <p className="text-sm text-neutral-600 mb-6">
+          Enter the 6-digit code sent to your email. (Mock code: <b>246810</b>)
+        </p>
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-20 flex flex-col items-center text-center">
-        <h1 className="text-2xl sm:text-3xl font-athiti font-bold tracking-tight mb-2">
-          Two-Factor Authentication
-        </h1>
-        <p className="text-sm text-black max-w-prose mb-8 font-athiti font-bold">
-          Enter the 6-digit code we just sent to your email. </p>
+        <form onSubmit={submit} className="space-y-4">
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            disabled={attemptsLeft <= 0}
+            value={code}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            placeholder="Enter 6-digit code"
+            className="w-full rounded-xl border border-black px-4 py-3 outline-none focus:ring-0"
+          />
 
-        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-neutral-900">
-          <div className="space-y-4">
-            <input
-              ref={inputRef}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={handleKeyDown}
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="Enter 6-digit code"
-              className="w-full border border-neutral-300 rounded-xl px-4 py-3 text-lg tracking-widest text-center outline-none focus:ring-1 focus:ring-black"
-            />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+          {err && <div className="text-sm text-red-600">{err}</div>}
 
+          <div className="flex items-center gap-3">
             <button
-              onClick={verify}
-              className="w-full rounded-xl bg-black text-white py-3 font-anuphan font-semibold hover:opacity-90 active:scale-[.99] transition"
+              type="submit"
+              disabled={attemptsLeft <= 0 || code.length !== 6}
+              className={`rounded-xl px-4 py-2 border border-black ${
+                attemptsLeft <= 0 || code.length !== 6
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-black text-white hover:opacity-90"
+              }`}
             >
               Verify
             </button>
 
-            <div className="text-sm text-neutral-700 flex items-center justify-between pt-2">
-              <span>{sent ? "Code sent to your email." : "Sending code…"}</span>
-              <button
-                onClick={resend}
-                disabled={countdown > 0}
-                className={`underline disabled:no-underline disabled:opacity-50`}
-              >
-                {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => onBack?.()}
+              disabled={attemptsLeft <= 0}
+              className="rounded-xl px-4 py-2 border border-black hover:bg-gray-50"
+            >
+              Back
+            </button>
           </div>
-        </div>
-      </main>
+
+          {attemptsLeft > 0 && (
+            <div className="text-xs text-neutral-500 mt-2">
+              Attempts remaining: {attemptsLeft}
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
+

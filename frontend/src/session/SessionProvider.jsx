@@ -4,14 +4,17 @@ import { useNavigate, useLocation } from "react-router-dom";
 const SessionCtx = createContext(null);
 export const useSession = () => useContext(SessionCtx);
 
-const STORAGE_KEY = "mv_session_exp";
-const SESSION_MS = 0.5 * 60 * 1000; // ⏰ 2 minutes for demo (change to 30 * 60 * 1000 in production)
-const WARN_BEFORE_MS = 0.5*30 * 1000; // show warning 30s before expire
+// ----- Config (FR-SM-002)
+const MINS = Number(import.meta.env.VITE_SESSION_MINUTES ?? 15); // default 15
+const SESSION_MS = MINS * 60 * 1000;
+const WARN_BEFORE_MS = 60 * 1000; // warn 60s before (FR-SM-003)
+const KEY_EXP = "mv_session_exp";
 
 export default function SessionProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expiresAt, setExpiresAt] = useState(() => Number(localStorage.getItem(STORAGE_KEY)) || 0);
+
+  const [expiresAt, setExpiresAt] = useState(() => Number(localStorage.getItem(KEY_EXP)) || 0);
   const [warn, setWarn] = useState(false);
   const timers = useRef({});
 
@@ -22,25 +25,25 @@ export default function SessionProvider({ children }) {
 
   const schedule = (nextExp) => {
     clearTimers();
-    const now = Date.now();
-    const msLeft = nextExp - now;
+    const msLeft = nextExp - Date.now();
     const warnAt = Math.max(0, msLeft - WARN_BEFORE_MS);
     timers.current.warn = setTimeout(() => setWarn(true), warnAt);
     timers.current.expire = setTimeout(() => logout(true), msLeft);
   };
 
-  const bump = () => {
-    if (!expiresAt) return;
+  const login = () => {
     const next = Date.now() + SESSION_MS;
-    localStorage.setItem(STORAGE_KEY, String(next));
-    setExpiresAt(next);
+    localStorage.setItem(KEY_EXP, String(next));
     setWarn(false);
+    setExpiresAt(next);
     schedule(next);
   };
 
-  const login = () => {
+  const bump = () => {
+    if (!expiresAt) return;
     const next = Date.now() + SESSION_MS;
-    localStorage.setItem(STORAGE_KEY, String(next));
+    localStorage.setItem(KEY_EXP, String(next));
+    setWarn(false);
     setExpiresAt(next);
     schedule(next);
   };
@@ -49,30 +52,29 @@ export default function SessionProvider({ children }) {
     clearTimers();
     setWarn(false);
     setExpiresAt(0);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(KEY_EXP);
+    // FR-SM-005 / 006: redirect with reason
     navigate("/", { replace: true, state: expired ? { reason: "expired" } : undefined });
   };
 
+  // init
   useEffect(() => {
-    if (expiresAt && expiresAt > Date.now()) schedule(expiresAt);
+    if (expiresAt > Date.now()) schedule(expiresAt);
     return clearTimers;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // user activity -> bump (FR-SM-001/004)
   useEffect(() => {
     if (!expiresAt) return;
     const onAct = () => bump();
-    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach((e) =>
-      window.addEventListener(e, onAct, { passive: true })
-    );
-    return () =>
-      ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach((e) =>
-        window.removeEventListener(e, onAct)
-      );
+    const evs = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    evs.forEach((e) => window.addEventListener(e, onAct, { passive: true }));
+    return () => evs.forEach((e) => window.removeEventListener(e, onAct));
   }, [expiresAt]);
 
-  useEffect(() => {
-    if (expiresAt) bump();
-  }, [location.pathname]);
+  // route change also counts as activity
+  useEffect(() => { if (expiresAt) bump(); }, [location.pathname]);
 
   const value = useMemo(() => ({ expiresAt, login, logout, warn, setWarn, bump }), [expiresAt, warn]);
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>;
