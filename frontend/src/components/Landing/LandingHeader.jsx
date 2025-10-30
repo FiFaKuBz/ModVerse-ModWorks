@@ -87,6 +87,14 @@ export default function LandingHeader({
                   {openTopics ? "▴" : "▾"}
                 </span>
               </button>
+
+              {/*logout button*/ }
+          <Link
+            to="/api/auth/logout"
+            className="inline-flex items-center gap-2 text-[18px] hover:opacity-80"
+          >
+            Logout
+          </Link>
             </>
           )}
         </nav>
