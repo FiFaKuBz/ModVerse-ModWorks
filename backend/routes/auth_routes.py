@@ -74,4 +74,4 @@ def callback():
 def logout():
     """ล็อกเอาท์และเคลียร์ session"""
     session.clear()
-    return redirect("/")
+    return redirect("index.html")
