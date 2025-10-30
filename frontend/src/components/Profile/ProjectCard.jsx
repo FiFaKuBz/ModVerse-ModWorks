@@ -26,7 +26,7 @@ export default function ProjectCard({ project }) {
         group
         cursor-pointer
         w-full
-        max-w-[360px]
+        max-w-[292px]
         rounded-[20px]
         border
         border-gray-200
@@ -60,7 +60,7 @@ export default function ProjectCard({ project }) {
       <div className="flex flex-col justify-between flex-grow px-5 pt-4 pb-3">
         {/* Text */}
         <div>
-          <h3 className="text-[1.2rem] sm:text-[1.25rem] font-An font-semibold text-black truncate">
+          <h3 className="text-[1.1rem] sm:text-[1.2rem] font-An font-semibold text-black truncate">
             {project.title || "Project title"}
           </h3>
           <p className="text-[0.9rem] font-IBM text-black truncate">

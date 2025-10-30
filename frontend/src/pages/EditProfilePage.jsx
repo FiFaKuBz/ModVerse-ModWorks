@@ -69,7 +69,7 @@ export default function EditProfilePage() {
       <div className="w-full max-w-[800px] px-[clamp(1rem,4vw,3rem)] mt-16">
         {/* Avatar Section */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-[120px] h-[120px] rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+          <div className="w-[100px] h-[100px] rounded-full bg-mGrey overflow-hidden flex items-center justify-center">
             {profile.avatar ? (
               <img
                 src={profile.avatar}
@@ -77,7 +77,7 @@ export default function EditProfilePage() {
                 className="w-full h-full object-cover rounded-full"
               />
             ) : (
-              <span className="text-gray-600 text-sm">No Image</span>
+              <span className="text-gray-600 text-sm">NO IMG</span>
             )}
           </div>
 

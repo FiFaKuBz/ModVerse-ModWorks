@@ -27,7 +27,7 @@ export default function ProfileStats({
   return (
     <div className="flex flex-col items-center mt-4 px-4 text-center font-An">
       {/* Followers / Following */}
-      <div className="flex flex-wrap justify-center gap-2 text-[16px] sm:text-[18px] md:text-[20px] text-black font-semibold">
+      <div className="flex flex-wrap justify-center gap-2 text-[14px] sm:text-[16px] md:text-[18px] text-black font-semibold">
         <p>
           {followers} followers | {following} following
         </p>
@@ -35,13 +35,13 @@ export default function ProfileStats({
 
       {/* Likes */}
       {showLikes && (
-        <p className="text-[16px] sm:text-[18px] md:text-[20px] text-black mt-1 text-center font-An">
+        <p className="text-[14px] sm:text-[16px] md:text-[18px] text-black mt-1 text-center font-An">
           {likes} Likes
         </p>
       )}
 
       {/* Buttons */}
-      <div className="flex gap-[37px] mt-4 flex-wrap justify-center relative text-[16px] sm:text-[18px] md:text-[20px] text-black mt-1 text-center font-medium font-IBM">
+      <div className="flex gap-[37px] mt-4 flex-wrap justify-center relative text-[18px] sm:text-[16px] md:text-[14px] text-black mt-1 text-center font-medium font-IBM">
         {/* SHARE */}
         <CustomButton variant="share" onClick={onShare}>
           Share
