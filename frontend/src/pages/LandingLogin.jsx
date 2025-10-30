@@ -77,7 +77,11 @@ export default function LandingLogin() {
 
             <button
               type="button"
-              onClick={handleGoogleLogin}
+
+              onClick={() => {
+                // redirects browser to backend which starts Google OAuth
+                window.location.href = "/api/auth/login";
+              }}
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-20 py-3 text-sm font-anuphan font-semibold text-neutral-800 hover:bg-neutral-50 active:scale-[.99] transition"
             >
               Sign in with Google

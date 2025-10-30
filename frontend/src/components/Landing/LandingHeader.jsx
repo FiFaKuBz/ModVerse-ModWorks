@@ -34,6 +34,26 @@ export default function LandingHeader({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  //logout
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+
+        localStorage.removeItem('user_token');
+
+        navigate('/'); 
+      } else {
+        console.error("Logout API call failed.");
+      }
+    } catch (error) {
+      console.error("Network error during logout:", error);
+    }
+  };
 
   return (
     <header
@@ -138,6 +158,14 @@ export default function LandingHeader({
                   {openTopics ? "▴" : "▾"}
                 </span>
               </button>
+
+              {/*logout button*/ }
+          <Link
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 text-[18px] hover:opacity-80"
+          >
+            Logout
+          </Link>
             </>
           )}
         </nav>

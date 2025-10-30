@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, request, session, url_for
+from flask import Blueprint, redirect, request, session, url_for, jsonify
 
 # สร้าง Blueprint ชื่อ "auth"
 auth_bp = Blueprint("auth", __name__)
@@ -24,7 +24,7 @@ def login():
     
     return redirect(url)
 
-@auth_bp.route("/auth/callback")
+@auth_bp.route("/callback")
 def callback():
     """รับ callback จาก Google หลังผู้ใช้ยืนยันตัวตน"""
     # ตรวจสอบ state
@@ -68,10 +68,10 @@ def callback():
     session.pop("oauth_state", None)
     session.pop("oauth_nonce", None)
     
-    return redirect(url_for("user.whoami"))
+    return redirect("/showcase")
 
 @auth_bp.route("/logout")
 def logout():
     """ล็อกเอาท์และเคลียร์ session"""
     session.clear()
-    return redirect("/")
+    return jsonify({"message": "Logout successful"}), 200
