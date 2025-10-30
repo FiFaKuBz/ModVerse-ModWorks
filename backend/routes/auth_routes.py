@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, request, session, url_for
+from flask import Blueprint, redirect, request, session, url_for, jsonify
 
 # สร้าง Blueprint ชื่อ "auth"
 auth_bp = Blueprint("auth", __name__)
@@ -74,4 +74,4 @@ def callback():
 def logout():
     """ล็อกเอาท์และเคลียร์ session"""
     session.clear()
-    return redirect("index.html")
+    return jsonify({"message": "Logout successful"}), 200

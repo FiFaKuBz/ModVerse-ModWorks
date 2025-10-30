@@ -22,6 +22,27 @@ export default function LandingHeader({
     return ["all", ...uniq];
   }, [topics]);
 
+  //logout
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+
+        localStorage.removeItem('user_token');
+
+        navigate('/'); 
+      } else {
+        console.error("Logout API call failed.");
+      }
+    } catch (error) {
+      console.error("Network error during logout:", error);
+    }
+  };
+
   return (
     <header
       className={`${
@@ -90,7 +111,7 @@ export default function LandingHeader({
 
               {/*logout button*/ }
           <Link
-            to="/api/auth/logout"
+            onClick={handleLogout}
             className="inline-flex items-center gap-2 text-[18px] hover:opacity-80"
           >
             Logout
