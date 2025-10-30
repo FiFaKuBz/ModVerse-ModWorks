@@ -68,7 +68,7 @@ def callback():
     session.pop("oauth_state", None)
     session.pop("oauth_nonce", None)
     
-    return redirect("/landing")
+    return redirect("/?auth=ok")
 
 @auth_bp.route("/logout")
 def logout():

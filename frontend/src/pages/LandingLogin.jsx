@@ -8,9 +8,17 @@ import { useSession } from "../session/SessionProvider";
 export default function LandingLogin() {
   const [step, setStep] = useState("login");  // 'login' | '2fa'
   const [banner, setBanner] = useState(null);
+  const [searchParams] = useSearchParams();
   const { login } = useSession();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (searchParams.get("auth") === "ok") {
+      setStep("2fa")
+    }
+  }, [searchParams]);
+
 
   const expiredMsg =
     location.state && location.state.reason === "expired"
