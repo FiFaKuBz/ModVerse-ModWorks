@@ -1,6 +1,6 @@
 // src/pages/LandingLogin.jsx
-import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState,useEffect } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import TwoFactorMock from "../auth/TwoFactorMock";
 import { useSession } from "../session/SessionProvider";
