@@ -8,12 +8,20 @@ ALLOWED_ASSET_TYPES = {"image","pdf","video","audio","link"}
 class ProjectModel:
     def __init__(self, db):
         self.col = db.projects
+        print(f"✅ ProjectModel initialized with collection: {self.col.name}")
+        print(f"   Database: {db.name}")
 
     def ensure_indexes(self):
+        print("Creating indexes for projects collection...")
         self.col.create_index([("owner_id", 1), ("created_at", -1)])
         self.col.create_index([("visibility", 1), ("status", 1), ("created_at", -1)])
+        print("✅ Indexes created successfully")
 
     def create(self, owner_id: ObjectId, payload: dict) -> ObjectId:
+        print("\n--- ProjectModel.create() ---")
+        print(f"Owner ID: {owner_id}")
+        print(f"Payload: {payload}")
+        
         now = datetime.now(timezone.utc)
         doc = {
             "owner_id": owner_id,
@@ -26,7 +34,7 @@ class ProjectModel:
             "results": payload.get("results","").strip(),
             "outcomes": payload.get("outcomes","").strip(),
             "next_steps": payload.get("next_steps","").strip(),
-            "tags": payload.get("tags","").strip(),
+            "tags": [tag.strip() for tag in payload.get("tags", [])] if isinstance(payload.get("tags"), list) else [],
             "visibility": payload.get("visibility","private"),
             "status": payload.get("status","draft"),
             "assets": [],
@@ -36,14 +44,35 @@ class ProjectModel:
             "last_viewed_at": None,
             "is_deleted": False,
         }
-        res = self.col.insert_one(doc)
-        return res.inserted_id
+        
+        print(f"Document to insert: {doc}")
+        
+        try:
+            res = self.col.insert_one(doc)
+            print(f"✅ Insert successful! ID: {res.inserted_id}")
+            print(f"   Acknowledged: {res.acknowledged}")
+            
+            # ตรวจสอบว่าเข้า DB จริงหรือไม่
+            verify = self.col.find_one({"_id": res.inserted_id})
+            print(f"   Verification: {verify is not None}")
+            
+            return res.inserted_id
+        except Exception as e:
+            print(f"❌ Insert failed: {e}")
+            raise
 
     def get(self, pid: ObjectId):
         return self.col.find_one({"_id": pid, "is_deleted": {"$ne": True}})
 
     def update(self, pid: ObjectId, patch: dict) -> bool:
         allowed = {"title","summary","description","objective","goals","methods","results","outcomes","next_steps","tags","visibility","status"}
+        
+        if "tags" in patch:
+            if isinstance(patch["tags"], list):
+                patch["tags"] = [tag.strip() for tag in patch["tags"] if isinstance(tag, str)]
+            else:
+                patch["tags"] = []
+
         patch = {k:v for k,v in (patch or {}).items() if k in allowed}
         if not patch: return False
         patch["updated_at"] = datetime.now(timezone.utc)

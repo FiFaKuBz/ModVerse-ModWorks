@@ -10,7 +10,14 @@ from routes.project_routes import project_bp, init_project_routes
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app) 
+
+# CORS Configuration (สำคัญสำหรับ API!)
+CORS(app, 
+     supports_credentials=True,  # อนุญาตให้ส่ง cookies
+     origins=["http://localhost:3000", "http://localhost:5000"],  # frontend origins
+     allow_headers=["Content-Type", "Authorization", "Cookie"],
+     expose_headers=["Set-Cookie"])
+
 app.config.from_object(Config)
 
 # เชื่อมต่อ MongoDB
@@ -19,9 +26,11 @@ mongo = PyMongo(app)
 # สร้าง model และ service objects
 with app.app_context():
     user_model = UserModel(mongo.db)
-    
     project_model = ProjectModel(mongo.db)
-
+    
+    # สร้าง indexes สำหรับ projects
+    project_model.ensure_indexes()
+    
     google_oauth = GoogleOAuth(
         client_id=Config.GOOGLE_CLIENT_ID,
         client_secret=Config.GOOGLE_CLIENT_SECRET,
@@ -33,7 +42,7 @@ with app.app_context():
 # เตรียมค่าสำหรับ routes
 init_auth_routes(google_oauth, user_model)
 init_user_routes(user_model)
-init_project_routes(project_model, mongo.db)
+init_project_routes(project_model)
 
 # ลงทะเบียน blueprints
 app.register_blueprint(auth_bp)

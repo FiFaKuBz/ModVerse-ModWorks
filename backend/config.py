@@ -8,6 +8,14 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
     MONGO_URI = os.getenv("MONGO_URI")
     
+    # Session Configuration (สำคัญ!)
+    SESSION_COOKIE_NAME = "session"
+    SESSION_COOKIE_HTTPONLY = True  # ป้องกัน JavaScript access
+    SESSION_COOKIE_SAMESITE = "Lax"  # ป้องกัน CSRF (ใช้ 'None' ถ้าต้องการ cross-origin)
+    SESSION_COOKIE_SECURE = False  # ตั้งเป็น True ถ้าใช้ HTTPS
+    PERMANENT_SESSION_LIFETIME = 86400  # 24 ชั่วโมง (วินาที)
+    SESSION_TYPE = "filesystem"  # หรือ 'mongodb' ถ้าต้องการ
+    
     # Google OAuth
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
