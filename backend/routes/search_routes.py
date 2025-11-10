@@ -1,11 +1,9 @@
 """
 Example usage:
-    
-    # ค้นหาผู้ใช้ที่มีทั้ง tag python และ flask (AND)
-    curl 'http://localhost:5000/api/search/tags?tags=python,flask'
-    
-    # ค้นหาผู้ใช้ที่มี tag python หรือ flask (OR) หน้า 2, แสดง 5 รายการ เรียงตาม created_at ล่าสุด
-    curl 'http://localhost:5000/api/search/tags?tags=python&op=or&page=2&limit=5&sort=-created_at'
+    # ค้นหาโปรเจคที่มี tag python และ flask ครบทุกอัน (match all)
+    curl 'http://localhost:5000/api/search/tags?collection=projects&tags=python,flask'
+    # ค้นหาโปรเจคที่มี tag react, nodejs ครบทั้งสอง (AND) หน้า 2, 5 รายการต่อหน้า
+    curl 'http://localhost:5000/api/search/tags?collection=projects&tags=react,nodejs&page=2&limit=5'
 """
 
 from typing import List, Tuple, Dict, Optional, Any
@@ -54,17 +52,17 @@ def _safe_projection(collection: str) -> Dict[str, int]:
 @search_bp.route("/api/search/tags")
 def search_by_tags():
     """
-    ค้นหา documents ตาม tags และ pagination
+    ค้นหาโปรเจค (หรือ collection อื่น) ที่มี tag ตรงกับที่เลือกอย่างน้อย 1 อัน (match any)
     Query params:
-        - collection: (optional) ชื่อ collection ที่จะค้นหา default: "users"
+        - collection: (optional) ชื่อ collection ที่จะค้นหา default: "projects"
         - tags: (required) comma-separated tags
-        - op: (optional) "and" หรือ "or" default: "and"
+        - op: (optional) "and" หรือ "or" default: "or"
         - page: (optional) หน้าที่จะแสดง default: 1
         - limit: (optional) จำนวนรายการต่อหน้า default: จาก Config.SEARCH_PAGE_SIZE หรือ 20
         - sort: (optional) field ที่จะเรียง default: -created_at
     """
     # Get and validate parameters
-    collection = request.args.get('collection', 'users')
+    collection = request.args.get('collection', 'projects')
     tags = _parse_tags(request.args.get('tags', ''))
     op = request.args.get('op', 'and').lower()
     

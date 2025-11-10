@@ -2,48 +2,47 @@
 
 ## Tags and Search API
 
-### Search Users by Tags
-Search for users based on their tags with pagination support.
+
+### Search Projects by Tags
+Search for projects that have all selected tags (match all, AND) with pagination support.
 
 ```
 GET /api/search/tags
 ```
 
 #### Query Parameters
-| Parameter   | Type    | Required | Default    | Description                                           |
-|------------|---------|----------|------------|-------------------------------------------------------|
-| tags       | string  | Yes      | -          | Comma-separated list of tags (e.g., "python,flask")   |
-| op         | string  | No       | "and"      | Search operator: "and" or "or"                        |
-| collection | string  | No       | "users"    | Collection to search in                               |
-| page       | integer | No       | 1          | Page number (1-based)                                 |
-| limit      | integer | No       | 20         | Items per page (max 100)                             |
-| sort       | string  | No       | -created_at| Field to sort by (prefix with - for descending)      |
+| Parameter   | Type    | Required | Default      | Description                                           |
+|------------|---------|----------|--------------|-------------------------------------------------------|
+| tags       | string  | Yes      | -            | Comma-separated list of tags (e.g., "python,flask")   |
+| op         | string  | No       | "and"        | Search operator: "and" (default, must match all tags) or "or" (match any tag) |
+| collection | string  | No       | "projects"   | Collection to search in                               |
+| page       | integer | No       | 1            | Page number (1-based)                                 |
+| limit      | integer | No       | 20           | Items per page (max 100)                              |
+| sort       | string  | No       | -created_at  | Field to sort by (prefix with - for descending)       |
 
 #### Success Response
 ```json
 {
-    "ok": true,
-    "collection": "users",
-    "filters": {
-        "tags": ["python", "flask"],
-        "op": "and"
-    },
-    "page": 1,
-    "limit": 20,
-    "total": 57,
-    "items": [
-        {
-            "_id": "507f1f77bcf86cd799439011",
-            "name": "John Doe",
-            "email": "john@example.com",
-            "picture": "https://example.com/photo.jpg",
-            "role": "developer",
-            "tags": ["python", "flask", "mongodb"],
-            "created_at": "2025-10-30T10:30:00Z",
-            "updated_at": "2025-10-30T10:30:00Z"
-        }
-        // ... more items
-    ]
+  "ok": true,
+  "collection": "projects",
+  "filters": {
+    "tags": ["python", "flask"],
+    "op": "and"
+  },
+  "page": 1,
+  "limit": 20,
+  "total": 12,
+  "items": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "My Project",
+      "description": "A Python Flask app",
+      "tags": ["python", "flask"],
+      "created_at": "2025-10-30T10:30:00Z",
+      "updated_at": "2025-10-30T10:30:00Z"
+    }
+    // ... more items
+  ]
 }
 ```
 
@@ -52,33 +51,33 @@ GET /api/search/tags
 **400 Bad Request** - Missing or invalid parameters
 ```json
 {
-    "ok": false,
-    "error": {
-        "code": "missing_tags",
-        "message": "Tags parameter is required and must not be empty"
-    }
+  "ok": false,
+  "error": {
+    "code": "missing_tags",
+    "message": "Tags parameter is required and must not be empty"
+  }
 }
 ```
 
 **400 Bad Request** - Invalid pagination
 ```json
 {
-    "ok": false,
-    "error": {
-        "code": "invalid_pagination",
-        "message": "Page and limit must be positive integers"
-    }
+  "ok": false,
+  "error": {
+    "code": "invalid_pagination",
+    "message": "Page and limit must be positive integers"
+  }
 }
 ```
 
 **404 Not Found** - Collection not found
 ```json
 {
-    "ok": false,
-    "error": {
-        "code": "collection_not_found",
-        "message": "Collection projects does not exist"
-    }
+  "ok": false,
+  "error": {
+    "code": "collection_not_found",
+    "message": "Collection projects does not exist"
+  }
 }
 ```
 
@@ -158,21 +157,22 @@ Content-Type: application/json
 
 ## Example Usage
 
+
 ### Search Examples
 
-1. Search users with both Python and Flask skills:
+1. Search projects that have both Python and Flask tags (match all):
 ```bash
-curl 'http://localhost:5000/api/search/tags?tags=python,flask'
+curl 'http://localhost:5000/api/search/tags?collection=projects&tags=python,flask'
 ```
 
-2. Search users with either Python or React skills, page 2, 5 items per page:
+2. Search projects that have either React or NodeJS tags (match any), page 2, 5 items per page:
 ```bash
-curl 'http://localhost:5000/api/search/tags?tags=python,react&op=or&page=2&limit=5'
+curl 'http://localhost:5000/api/search/tags?collection=projects&tags=react,nodejs&op=or&page=2&limit=5'
 ```
 
-3. Search users with MongoDB skills, sorted by creation date (newest first):
+3. Search projects with MongoDB tag, sorted by creation date (newest first):
 ```bash
-curl 'http://localhost:5000/api/search/tags?tags=mongodb&sort=-created_at'
+curl 'http://localhost:5000/api/search/tags?collection=projects&tags=mongodb&sort=-created_at'
 ```
 
 ### Update Profile Examples
