@@ -1,3 +1,4 @@
+// frontend/src/components/Landing/LandingHeader.jsx
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import TopicTray from "../topics/TopicTray";
@@ -5,7 +6,7 @@ import { useSession } from "../../session/SessionProvider";
 
 export default function LandingHeader({
   topics = [],
-  topic = "all",
+  selectedTopics = [], // <<< Changed prop name and default to array
   onChangeTopic,
   variant, // "login" or "default"
 }) {
@@ -20,8 +21,9 @@ export default function LandingHeader({
     variant === "login" || location.pathname === "/" || location.pathname === "/landing";
 
   const trayTopics = useMemo(() => {
-    const uniq = Array.from(new Set(topics));
-    return ["all", ...uniq];
+    // Remove "all" option from the tray for multi-select
+    const uniq = Array.from(new Set(topics)).filter(t => t !== "all");
+    return [...uniq]; 
   }, [topics]);
 
   // close dropdown when clicking outside
@@ -153,7 +155,7 @@ export default function LandingHeader({
                   "bg-white border border-yellow-500 text-black hover:bg-neutral-50 transition",
                 ].join(" ")}
               >
-                Topics
+                Topics {/* <<< Removed topic count display */}
                 <span className="inline-block -mt-[2px]">
                   {openTopics ? "▴" : "▾"}
                 </span>
@@ -168,12 +170,9 @@ export default function LandingHeader({
         <TopicTray
           open={openTopics}
           topics={trayTopics}
-          selected={topic}
-          onSelect={(t) => {
-            onChangeTopic?.(t);
-            setOpenTopics(false);
-          }}
-          onClose={() => setOpenTopics(false)}
+          selected={selectedTopics} // <<< Passed array
+          onSelect={onChangeTopic} // <<< Handler is now for toggling
+          onClose={() => setOpenTopics(false)} 
         />
       )}
     </header>

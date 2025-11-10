@@ -1,3 +1,4 @@
+// src/components/topics/TopicTray.jsx
 import { useEffect, useRef } from "react";
 
 const tagColors = {
@@ -12,7 +13,7 @@ const tagColors = {
 export default function TopicTray({
   open,
   topics = [],
-  selected = null,
+  selected = [], // <<< Changed: Expect an array of selected topics
   onSelect,
   onClose,
 }) {
@@ -48,11 +49,12 @@ export default function TopicTray({
           {/* Chip cloud */}
           <div className="flex flex-wrap gap-2">
             {topics.map((t) => {
-              const active = selected === t;
+              const active = selected.includes(t); // <<< Check if topic is included in the array
               return (
                 <button
                   key={t}
-                  onClick={() => onSelect?.(t)}
+                  // onSelect no longer closes the tray
+                  onClick={() => onSelect?.(t)} 
                   className={[
                     // base chip
                     "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border",
