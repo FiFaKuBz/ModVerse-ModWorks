@@ -57,7 +57,7 @@ export default function TopicTray({
                   onClick={() => onSelect?.(t)} 
                   className={[
                     // base chip
-                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border",
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-An font-medium border",
                     // color family (fallback to neutral)
                     tagColors[t] || "bg-neutral-100 text-neutral-800",
                     // border + active ring

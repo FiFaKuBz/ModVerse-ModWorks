@@ -69,17 +69,17 @@ export default function LandingHeader({
         {/* Logo */}
         <button
           onClick={() => navigate("/showcase")}
-          className="font-athiti font-bold text-left text-xl leading-none"
+          className="font-At font-bold text-left text-xl leading-none"
           aria-label="Go to Showcase"
         >
           <span className="block">ModVerse</span>
-          <span className="-mt-1 block text-sm font-bold tracking-wide">
+          <span className="-mt-1 block text-sm font-bold font-At tracking-wide">
             ModWorks
           </span>
         </button>
 
         {/* Right side */}
-        <nav className="flex items-center gap-4 font-anuphan font-semibold">
+        <nav className="flex items-center gap-4 font-An font-semibold">
           <Link
             to="/landing-about"
             className="inline-flex items-center gap-2 text-[18px] hover:opacity-80"
