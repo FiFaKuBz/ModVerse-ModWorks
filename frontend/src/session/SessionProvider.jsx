@@ -6,8 +6,8 @@ export const useSession = () => useContext(SessionCtx);
 
 // ----- Config (FR-SM-002)
 const MINS = Number(import.meta.env.VITE_SESSION_MINUTES ?? 15); // default 15
-const SESSION_MS = MINS * 60 * 1000;
-const WARN_BEFORE_MS = 60 * 1000; // warn 60s before (FR-SM-003)
+const SESSION_MS      = Number(import.meta.env.VITE_SESSION_MS ?? 60 * 60 * 1000);
+const WARN_BEFORE_MS  = Number(import.meta.env.VITE_SESSION_WARN_MS ?? 30 * 60 * 1000);
 const KEY_EXP = "mv_session_exp";
 
 export default function SessionProvider({ children }) {

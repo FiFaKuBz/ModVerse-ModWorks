@@ -13,9 +13,10 @@ export default function ProjectCard({ project }) {
 
   // Click handler (navigate to project details later)
   const handleClick = () => {
-    // Placeholder — we’ll wire this up later
-    console.log("Clicked:", project.title);
-    // Example: navigate(`/project/${project.id}`)
+    // Navigate to detail and pass the project as state for quick render
+    if (project?.id) {
+      navigate(`/project/${project.id}`, { state: { project } });
+    }
   };
 
   return (

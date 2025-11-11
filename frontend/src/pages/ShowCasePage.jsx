@@ -3,8 +3,19 @@ import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
 import Pagination from "../components/common/Pagination";
 import { useSearchParams } from "react-router-dom";
+import CreateButton from "../components/common/CreateButton";
 
-/* ---------- mock data (unchanged) ---------- */
+/* ---------- mock data + local user projects ---------- */
+const STORAGE_KEY = "mv_user_projects";
+function loadUserProjects() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
 const MOCK = [
   {
     id: "p1",
@@ -81,7 +92,17 @@ export default function ShowcasePage() {
   }, [page, topic]);
 
   const filteredSorted = useMemo(() => {
-    const base = topic === "all" ? MOCK : MOCK.filter(p => p.tags.includes(topic));
+    const USER = loadUserProjects();
+    const userCards = USER.filter((p) => p.public).map((p) => ({
+      id: p.id,
+      title: p.title,
+      contributor: p.contributor || "You",
+      tags: p.tags || [],
+      image: p.image || "",
+      metrics7d: p.metrics7d || { likes: 0, saves: 0, comments: 0 },
+    }));
+    const joined = [...userCards, ...MOCK];
+    const base = topic === "all" ? joined : joined.filter(p => p.tags.includes(topic));
     return [...base].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
   }, [topic]);
 
@@ -121,6 +142,8 @@ export default function ShowcasePage() {
           <div className="py-20 text-center text-gray-400">No projects found.</div>
         )}
       </div>
+      {/* Floating Create button */}
+      <CreateButton />
     </div>
   );
 }
