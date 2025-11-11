@@ -85,7 +85,7 @@ export default function LandingHeader({
           className="flex-shrink-0 flex items-center"
           aria-label="Go to Showcase"
         >
-          <img src={MVMWlogo} alt="ModVerse ModWorks Logo" className="h-12 w-auto" />
+          <img src={MVMWlogo} alt="ModVerse ModWorks Logo" className="h-20 w-auto" />
         </button>
         <nav className="flex items-center gap-4 font-An font-semibold">
           <Link
