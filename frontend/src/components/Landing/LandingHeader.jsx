@@ -3,10 +3,11 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import TopicTray from "../topics/TopicTray";
 import { useSession } from "../../session/SessionProvider";
+import MVMWlogo from '../../assets/MVMWlogo.svg'; // Assumes logo is in assets
 
 export default function LandingHeader({
   topics = [],
-  selectedTopics = [], // <<< Changed prop name and default to array
+  selectedTopics = [], 
   onChangeTopic,
   variant, // "login" or "default"
 }) {
@@ -16,17 +17,17 @@ export default function LandingHeader({
   const [openTopics, setOpenTopics] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
   const menuRef = useRef(null);
+  const closeTimer = useRef(null); // <<< Add a ref for the close timer
 
   const isLogin =
     variant === "login" || location.pathname === "/" || location.pathname === "/landing";
 
   const trayTopics = useMemo(() => {
-    // Remove "all" option from the tray for multi-select
     const uniq = Array.from(new Set(topics)).filter(t => t !== "all");
     return [...uniq]; 
   }, [topics]);
 
-  // close dropdown when clicking outside
+  // close user menu dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -39,15 +40,14 @@ export default function LandingHeader({
   //logout
   const handleLogout = async () => {
     try {
+      // ... (logout logic unchanged)
       const response = await fetch('/api/auth/logout', { 
         method: 'POST',
         credentials: 'include'
       });
 
       if (response.ok) {
-
         localStorage.removeItem('user_token');
-
         navigate('/'); 
       } else {
         console.error("Logout API call failed.");
@@ -55,6 +55,19 @@ export default function LandingHeader({
     } catch (error) {
       console.error("Network error during logout:", error);
     }
+  };
+
+  // <<< Add hover logic functions >>>
+  const handleOpenTopics = () => {
+    clearTimeout(closeTimer.current); // Cancel any pending close
+    setOpenTopics(true);
+  };
+
+  const scheduleCloseTopics = () => {
+    // Schedule a close in 200ms
+    closeTimer.current = setTimeout(() => {
+      setOpenTopics(false);
+    }, 200);
   };
 
   return (
@@ -65,20 +78,15 @@ export default function LandingHeader({
           : "sticky top-0 z-50 bg-white/95 backdrop-blur"
       }`}
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logo */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        {/* ... (logo and user menu unchanged) ... */}
         <button
           onClick={() => navigate("/showcase")}
-          className="font-At font-bold text-left text-xl leading-none"
+          className="flex-shrink-0 flex items-center"
           aria-label="Go to Showcase"
         >
-          <span className="block">ModVerse</span>
-          <span className="-mt-1 block text-sm font-bold font-At tracking-wide">
-            ModWorks
-          </span>
+          <img src={MVMWlogo} alt="ModVerse ModWorks Logo" className="h-12 w-auto" />
         </button>
-
-        {/* Right side */}
         <nav className="flex items-center gap-4 font-An font-semibold">
           <Link
             to="/landing-about"
@@ -86,11 +94,8 @@ export default function LandingHeader({
           >
             About
           </Link>
-
-          {/* Hide menu & topics on login */}
           {!isLogin && (
             <>
-              {/* Dropdown user menu */}
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setOpenMenu((v) => !v)}
@@ -106,8 +111,6 @@ export default function LandingHeader({
                     <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.2 0-8 2.1-8 5v1h16v-1c0-2.9-3.8-5-8-5Z" />
                   </svg>
                 </button>
-
-                {/* Dropdown menu content */}
                 {openMenu && (
                   <div
                     className="absolute right-0 mt-2 w-44 rounded-xl border bg-white shadow-lg overflow-hidden"
@@ -147,7 +150,9 @@ export default function LandingHeader({
               {/* Topics button */}
               <button
                 type="button"
-                onClick={() => setOpenTopics((v) => !v)}
+                // <<< Updated: Removed onClick, added hover handlers
+                onMouseEnter={handleOpenTopics}
+                onMouseLeave={scheduleCloseTopics}
                 aria-expanded={openTopics}
                 aria-controls="topics-tray"
                 className={[
@@ -155,9 +160,13 @@ export default function LandingHeader({
                   "bg-white border border-yellow-500 text-black hover:bg-neutral-50 transition",
                 ].join(" ")}
               >
-                Topics {/* <<< Removed topic count display */}
-                <span className="inline-block -mt-[2px]">
-                  {openTopics ? "▴" : "▾"}
+                Topics 
+                <span
+                  className={`inline-block transition-transform duration-200 ${
+                    openTopics ? "rotate-180" : ""
+                  }`}
+                >
+                  ▾
                 </span>
               </button>
             </>
@@ -170,9 +179,11 @@ export default function LandingHeader({
         <TopicTray
           open={openTopics}
           topics={trayTopics}
-          selected={selectedTopics} // <<< Passed array
-          onSelect={onChangeTopic} // <<< Handler is now for toggling
-          onClose={() => setOpenTopics(false)} 
+          selected={selectedTopics} 
+          onSelect={onChangeTopic} 
+          // <<< Pass the hover handlers down to the tray
+          onMouseEnter={handleOpenTopics}
+          onMouseLeave={scheduleCloseTopics}
         />
       )}
     </header>

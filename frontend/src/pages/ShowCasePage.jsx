@@ -163,47 +163,51 @@ export default function ShowcasePage() {
       />
 
       <div className="mx-auto max-w-[1600px] px-[clamp(1rem,4vw,5rem)] py-8">
-        {isLoading ? (
-          <div className="py-20 text-center text-gray-400">Loading…</div>
-        ) : (
-          <>
-            {/* Display selected topics on the same line, aligned to the center */}
-            <div className="flex items-center justify-center gap-2 mb-10 font-['Anuphan']">
-              <h2 className="text-2xl font-semibold mt-4">
-                {isShowAll ? "All Projects" : "Projects Filtered by:"}
-              </h2>
-              {selectedTopics.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4"> 
-                  {selectedTopics.map(topic => (
-                    <div
-                      key={topic}
-                      className={`inline-flex items-center rounded-full px-2 py-1 text-base font-semibold border-black border ${
-                        tagColors[topic] || "bg-gray-100 text-black"
-                      }`}
-                    >
-                      {topic}
-                    </div>
-                  ))}
+        {/* Display selected topics on the same line, aligned to the center */}
+        <div className="flex items-center justify-center gap-2 mb-10 font-At">
+          <h2 className="text-2xl font-semibold mt-4">
+            {isShowAll ? "All Projects" : "Projects Filtered by:"}
+          </h2>
+          {selectedTopics.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4"> 
+              {selectedTopics.map(topic => (
+                <div
+                  key={topic}
+                  className={`inline-flex items-center rounded-full px-2 py-1 text-base font-semibold border-black border ${
+                    tagColors[topic] || "bg-gray-100 text-black"
+                  }`}
+                >
+                  {topic}
                 </div>
-              )}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* --- MODIFIED SECTION --- */}
+        {/* Show grid + pagination IF NOT loading AND items exist */}
+        {!isLoading && pageItems.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-[59px] justify-center mx-auto">
+              {pageItems.map(p => <ProjectCard key={p.id} project={p} />)}
             </div>
 
-            {pageItems.length ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-[59px] justify-center mx-auto">
-                  {pageItems.map(p => <ProjectCard key={p.id} project={p} />)}
-                </div>
-
-                <div className="mt-10">
-                  <Pagination totalPages={totalPages} currentPage={current} onChange={setPage} />
-                </div>
-              </>
-            ) : (
-              // This message now appears below the filter badges
-              <div className="py-20 text-center text-gray-400">No projects found.</div>
-            )}
+            <div className="mt-10">
+              <Pagination totalPages={totalPages} currentPage={current} onChange={setPage} />
+            </div>
           </>
         )}
+
+        {/* Show message IF loading OR no items exist */}
+        {(isLoading || pageItems.length === 0) && (
+          <div className="py-20 font-IBM text-center text-gray-400">
+            {isLoading
+              ? "Give us a sec — we’re sorting through awesome projects right now! 🚀"
+              : "Hmm, no projects found. Why not be the first to make one? 👀"}
+          </div>
+        )}
+        {/* --- END MODIFIED SECTION --- */}
+
       </div>
     </div>
   );
