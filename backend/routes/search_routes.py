@@ -9,7 +9,7 @@ Example usage:
 from typing import List, Tuple, Dict, Optional, Any
 from flask import Blueprint, request, current_app, jsonify
 
-from ..models.search import ensure_tags_index
+from models.search import ensure_tags_index
 
 search_bp = Blueprint("search", __name__)
 
@@ -93,9 +93,45 @@ def search_by_tags():
     filter_op = '$all' if op == 'and' else '$in'
     mongo_filter = {'tags': {filter_op: tags}}
     
-    # Get database handle
-    db = current_app.extensions['pymongo'].db
-    
+    # Get database handle (robust: try Flask-PyMongo extension, app attribute, then fallback to MongoClient)
+    db = None
+    try:
+        ext = current_app.extensions.get('pymongo') if hasattr(current_app, 'extensions') else None
+        if ext:
+            db = ext.db
+    except Exception:
+        db = None
+
+    if db is None and hasattr(current_app, 'mongo'):
+        try:
+            db = current_app.mongo.db
+        except Exception:
+            db = None
+
+    if db is None:
+        # fallback: try to create a short-lived client using MONGO_URI
+        from pymongo import MongoClient
+        uri = current_app.config.get('MONGO_URI')
+        if not uri:
+            return jsonify({
+                'ok': False,
+                'error': {
+                    'code': 'db_unavailable',
+                    'message': 'Database connection not configured (MONGO_URI missing)'
+                }
+            }), 500
+        try:
+            client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            db = client.get_default_database()
+        except Exception as e:
+            return jsonify({
+                'ok': False,
+                'error': {
+                    'code': 'db_connection_failed',
+                    'message': str(e)
+                }
+            }), 500
+
     # Ensure collection exists
     if collection not in db.list_collection_names():
         return jsonify({

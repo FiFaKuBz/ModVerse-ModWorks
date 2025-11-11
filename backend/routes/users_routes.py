@@ -1,7 +1,7 @@
 from flask import Blueprint, session, jsonify, request
 from bson import ObjectId
 from bson.errors import InvalidId
-from ..auth.decorators import login_required
+from auth.decorators import login_required
 from typing import List, Optional
 
 user_bp = Blueprint("user", __name__)

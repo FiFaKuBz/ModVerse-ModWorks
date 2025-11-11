@@ -1,11 +1,11 @@
 from flask import Flask, send_from_directory
 from flask_pymongo import PyMongo
-from .config import Config
-from .models.user import UserModel
-from .auth.google import GoogleOAuth
-from .routes.auth_routes import auth_bp, init_auth_routes
-from .routes.users_routes import user_bp, init_user_routes
-from .routes.search_routes import search_bp  # NEW
+from config import Config
+from models.user import UserModel
+from auth.google import GoogleOAuth
+from routes.auth_routes import auth_bp, init_auth_routes
+from routes.users_routes import user_bp, init_user_routes
+from routes.search_routes import search_bp  # NEW
 from flask_cors import CORS
 import os
 
@@ -13,8 +13,22 @@ app = Flask(__name__, static_folder='../frontend/dist')
 CORS(app) 
 app.config.from_object(Config)
 
+# ตรวจสอบ MONGO_URI ก่อนเชื่อมต่อ
+if not app.config.get('MONGO_URI'):
+    print("\n" + "="*60)
+    print("❌ ERROR: MONGO_URI is not configured!")
+    print("="*60)
+    print("\nกรุณาสร้างไฟล์ .env ในโฟลเดอร์ backend ด้วยเนื้อหา:")
+    print("\nMONGO_URI=mongodb://localhost:27017/cpe334_test")
+    print("SECRET_KEY=dev-secret-key")
+    print("\nหลังจากนั้นรันแอปใหม่: python app.py")
+    print("="*60 + "\n")
+    raise RuntimeError("MONGO_URI environment variable not set")
+
 # เชื่อมต่อ MongoDB
+print(f"🔄 Connecting to MongoDB: {app.config.get('MONGO_URI')}")
 mongo = PyMongo(app)
+print("✅ MongoDB connected successfully!")
 
 # สร้าง model และ service objects
 with app.app_context():
