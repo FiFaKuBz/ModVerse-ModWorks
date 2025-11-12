@@ -3,7 +3,6 @@ from flask_pymongo import PyMongo
 from flask_mail import Mail
 from flask_cors import CORS
 import os
-
 from config import Config
 from models.user import UserModel
 from models.project import ProjectModel
@@ -12,7 +11,6 @@ from auth.otp_service import OTPService
 from routes.auth_routes import auth_bp, init_auth_routes
 from routes.users_routes import user_bp, init_user_routes
 from routes.project_routes import project_bp, init_project_routes
-from flask_cors import CORS
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
@@ -67,5 +65,5 @@ def serve(path):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-    app.run(debug=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
+    # app.run(debug=True, use_reloader=False)
