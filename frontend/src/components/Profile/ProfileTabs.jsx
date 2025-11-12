@@ -3,15 +3,16 @@ export default function ProfileTabs({
   setActiveTab,
   isOwner = true,
   showSavedPublicly = true,
+  showRecruiter = false,
 }) {
   const tabs = [
     "Created",
     ...(isOwner || showSavedPublicly ? ["Saved"] : []),
-    ...(isOwner ? ["Recruiter Requests"] : []),
+    ...(showRecruiter ? ["Recruiter Requests"] : []),
   ];
 
   return (
-    <div className="flex justify-center mt-4 gap-[37px] text-[16px] sm:text-[18px] md:text-[20px] font-['Anuphan']">
+    <div className="flex justify-center mt-4 gap-[37px] text-[14px] sm:text-[16px] md:text-[18px] font-An">
       {tabs.map((tab) => (
         <button
           key={tab}
