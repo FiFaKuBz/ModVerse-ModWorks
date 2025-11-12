@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from bson import ObjectId
 from bson.errors import InvalidId
-from auth.decorators import login_required
+from ..auth.decorators import login_required
 
 project_bp = Blueprint("project", __name__)
 
