@@ -3,14 +3,14 @@ from flask_pymongo import PyMongo
 from flask_mail import Mail
 from flask_cors import CORS
 import os
-from config import Config
-from models.user import UserModel
-from models.project import ProjectModel
-from auth.google import GoogleOAuth
-from auth.otp_service import OTPService
-from routes.auth_routes import auth_bp, init_auth_routes
-from routes.users_routes import user_bp, init_user_routes
-from routes.project_routes import project_bp, init_project_routes
+from .config import Config
+from .models.user import UserModel
+from .models.project import ProjectModel
+from .auth.google import GoogleOAuth
+from .auth.otp_service import OTPService
+from .routes.auth_routes import auth_bp, init_auth_routes
+from .routes.users_routes import user_bp, init_user_routes
+from .routes.project_routes import project_bp, init_project_routes
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
