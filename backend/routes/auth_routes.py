@@ -6,12 +6,14 @@ auth_bp = Blueprint("auth", __name__)
 # จะถูก inject จาก app.py
 google_oauth = None
 user_model = None
+otp_service = None
 
-def init_auth_routes(oauth, model):
+def init_auth_routes(oauth, model,otp):
     """เตรียมค่าที่ต้องใช้ใน routes"""
-    global google_oauth, user_model
+    global google_oauth, user_model, otp_service
     google_oauth = oauth
     user_model = model
+    otp_service = otp
 
 @auth_bp.route("/login")
 def login():
@@ -26,7 +28,12 @@ def login():
 
 @auth_bp.route("/callback")
 def callback():
-    """รับ callback จาก Google หลังผู้ใช้ยืนยันตัวตน"""
+    """
+    รับ callback จาก Google
+    → ตรวจสอบตัวตน
+    → ส่ง OTP
+    → รอ user ยืนยัน
+    """
     # ตรวจสอบ state
     if request.args.get("state") != session.get("oauth_state"):
         return "Invalid state", 400
@@ -52,10 +59,56 @@ def callback():
     if google_info.get("nonce") != session.get("oauth_nonce"):
         return "Invalid nonce", 400
     
-    # บันทึกผู้ใช้ใน database
+    # บันทึกข้อมูล Google ใน session ชั่วคราว (ยังไม่ให้เข้าระบบ)
+    session["pending_google_info"] = google_info
+
+    # 📧 ส่ง OTP ไปอีเมล
+    email = google_info.get("email")
+    name = google_info.get("name", "User")
+
+    result = otp_service.send_otp(email, name)
+
+    if not result["success"]:
+        return jsonify({"error": "Failed to send OTP"}), 500
+    
+    # เคลียร์ค่า one-time OAuth
+    session.pop("oauth_state", None)
+    session.pop("oauth_nonce", None)
+    
+    #  ✅ ส่ง response กลับไปให้ frontend รู้ว่าต้องไป 2FA
+    return jsonify({
+        "need2fa": True,
+        "email": email
+    }), 200
+
+
+@auth_bp.route("/verify-otp", methods=["POST"])
+def verify_otp():
+    """
+    ตรวจสอบ OTP ที่ user กรอกมา
+    """
+    data = request.get_json()
+    code = data.get("code", "").strip()
+    
+    # ตรวจสอบว่ามี pending_google_info หรือไม่
+    google_info = session.get("pending_google_info")
+    if not google_info:
+        return jsonify({"ok": False, "error": "No pending authentication"}), 400
+    
+    email = google_info.get("email")
+    
+    # ตรวจสอบ OTP
+    result = otp_service.verify_otp(email, code)
+    
+    if not result["valid"]:
+        # เพิ่มจำนวนครั้งที่พยายาม
+        otp_service.increment_attempt(email)
+        return jsonify({"ok": False, "error": result["message"]}), 400
+    
+    # ✅ OTP ถูกต้อง → บันทึก user ลง database
     user_doc = user_model.upsert_google_user(google_info)
     
-    # เก็บข้อมูลใน session
+    # สร้าง session จริง
     session["user"] = {
         "id": str(user_doc["_id"]),
         "name": user_doc.get("name"),
@@ -64,13 +117,30 @@ def callback():
         "role": user_doc.get("role", "user"),
     }
     
-    # เคลียร์ค่า one-time
-    session.pop("oauth_state", None)
-    session.pop("oauth_nonce", None)
+    # ลบข้อมูล pending
+    session.pop("pending_google_info", None)
     
-    return redirect("/?auth=ok")
+    return jsonify({"ok": True, "message": "Login successful"}), 200
 
-@auth_bp.route("/logout")
+
+@auth_bp.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    """ส่ง OTP ใหม่อีกครั้ง"""
+    google_info = session.get("pending_google_info")
+    if not google_info:
+        return jsonify({"error": "No pending authentication"}), 400
+    
+    email = google_info.get("email")
+    name = google_info.get("name", "User")
+    
+    result = otp_service.send_otp(email, name)
+    
+    if result["success"]:
+        return jsonify({"message": "OTP resent"}), 200
+    else:
+        return jsonify({"error": "Failed to resend OTP"}), 500
+
+@auth_bp.route("/logout", methods=["POST"])
 def logout():
     """ล็อกเอาท์และเคลียร์ session"""
     session.clear()

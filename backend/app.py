@@ -1,24 +1,30 @@
 from flask import Flask, send_from_directory
 from flask_pymongo import PyMongo
-from .config import Config
-from .models.user import UserModel
-from .auth.google import GoogleOAuth
-from .routes.auth_routes import auth_bp, init_auth_routes
-from .routes.users_routes import user_bp, init_user_routes
+from flask_mail import Mail
 from flask_cors import CORS
 import os
+
+from config import Config
+from models.user import UserModel
+from auth.google import GoogleOAuth
+from auth.otp_service import OTPService
+from routes.auth_routes import auth_bp, init_auth_routes
+from routes.users_routes import user_bp, init_user_routes
+
 
 app = Flask(__name__, static_folder='../frontend/dist')
 CORS(app) 
 app.config.from_object(Config)
 
-# เชื่อมต่อ MongoDB
+# เชื่อมต่อ MongoDB และ Mail
 mongo = PyMongo(app)
+mail = Mail(app)
 
 # สร้าง model และ service objects
 with app.app_context():
     user_model = UserModel(mongo.db)
-    
+    otp_service = OTPService(mail, mongo.db)
+
     google_oauth = GoogleOAuth(
         client_id=Config.GOOGLE_CLIENT_ID,
         client_secret=Config.GOOGLE_CLIENT_SECRET,
@@ -28,7 +34,7 @@ with app.app_context():
     )
 
 # เตรียมค่าสำหรับ routes
-init_auth_routes(google_oauth, user_model)
+init_auth_routes(google_oauth, user_model, otp_service)
 init_user_routes(user_model)
 
 # ลงทะเบียน blueprints
@@ -46,5 +52,4 @@ def serve(path):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    # app.run(debug=True, use_reloader=False)
-    
+    app.run(debug=True, use_reloader=False)
