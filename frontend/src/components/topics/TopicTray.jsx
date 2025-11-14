@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+// src/components/topics/TopicTray.jsx
+import { useRef } from "react"; // <<< Removed useEffect
 
 const tagColors = {
   "UX/UI": "bg-mPurple text-black",
@@ -12,32 +13,25 @@ const tagColors = {
 export default function TopicTray({
   open,
   topics = [],
-  selected = null,
+  selected = [],
   onSelect,
-  onClose,
+  // <<< Accept the new hover props
+  onMouseEnter,
+  onMouseLeave,
 }) {
   const trayRef = useRef(null);
 
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e) => {
-      if (trayRef.current && !trayRef.current.contains(e.target)) onClose?.();
-    };
-    const onEsc = (e) => e.key === "Escape" && onClose?.();
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [open, onClose]);
+  // <<< Removed the useEffect for click-outside and Esc
+  // (This implements the hover-only logic you asked for)
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed left-0 right-0 top-16 z-40" // sits right below a 64px (h-16) header
+      // <<< Add the hover handlers to the main div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="fixed left-0 right-0 top-20 z-40" 
       aria-live="polite"
     >
       <div
@@ -48,14 +42,14 @@ export default function TopicTray({
           {/* Chip cloud */}
           <div className="flex flex-wrap gap-2">
             {topics.map((t) => {
-              const active = selected === t;
+              const active = selected.includes(t);
               return (
                 <button
                   key={t}
-                  onClick={() => onSelect?.(t)}
+                  onClick={() => onSelect?.(t)} 
                   className={[
                     // base chip
-                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border",
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-An font-medium border",
                     // color family (fallback to neutral)
                     tagColors[t] || "bg-neutral-100 text-neutral-800",
                     // border + active ring
