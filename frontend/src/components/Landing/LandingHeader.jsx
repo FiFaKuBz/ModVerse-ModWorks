@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import TopicTray from "../topics/TopicTray";
-import { useSession } from "../../session/SessionProvider";
+import { useSession } from "../../session/SessionContext";
 
 export default function LandingHeader({
   topics = [],
@@ -37,16 +37,16 @@ export default function LandingHeader({
   //logout
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', { 
-        method: 'POST',
-        credentials: 'include'
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
       });
 
       if (response.ok) {
-
-        localStorage.removeItem('user_token');
-
-        navigate('/'); 
+        localStorage.removeItem("user_token");
+        logout();
+        setOpenMenu(false);
+        navigate("/");
       } else {
         console.error("Logout API call failed.");
       }
@@ -130,10 +130,7 @@ export default function LandingHeader({
                       Settings
                     </button>
                     <button
-                      onClick={() => {
-                        logout();
-                        setOpenMenu(false);
-                      }}
+                      onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600"
                     >
                       Logout

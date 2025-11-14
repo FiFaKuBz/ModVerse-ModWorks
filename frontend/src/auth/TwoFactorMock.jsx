@@ -22,9 +22,6 @@ export default function TwoFactorMock({
     e?.preventDefault?.();
     if (attemptsLeft <= 0) return;
 
-    // eslint-disable-next-line no-console
-    console.log("TwoFactorMock submit:", { code, attemptsLeft });
-
     if (code.trim() === STATIC_OTP) {
       setErr("");
       onSuccess?.();

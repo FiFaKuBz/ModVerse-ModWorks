@@ -283,6 +283,29 @@ export default function ProjectDetailPage() {
     if (hydrated) setProject(hydrated);
   }, [id, project]);
 
+  const detail = project?.detail || {};
+  const created = project?.createdAt ? new Date(project.createdAt) : null;
+  const formattedDate = created
+    ? created.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+    : "";
+  const contributorName = project?.contributor || "User";
+  const contributorSlug = slugify(contributorName);
+  const coauthorSource = project?.coauthors;
+  const coauthors = useMemo(() => {
+    const list = Array.isArray(coauthorSource) ? coauthorSource : [];
+    return normalizeCoauthors(list);
+  }, [coauthorSource]);
+
+  useEffect(() => {
+    setShowCoauthors(false);
+  }, [coauthors.length]);
+  const recommended = useMemo(() => {
+    if (!project) return [];
+    return pickRecommendedProjects(project.id, project.tags || []);
+  }, [project]);
+
+  const primaryTag = project?.tags?.[0] || null;
+  const primaryBg = TAG_BG_COLORS[primaryTag] || "#D3C2CD";
   const isOwner = useMemo(() => id?.startsWith("u-"), [id]);
 
   if (!project) {
@@ -295,29 +318,6 @@ export default function ProjectDetailPage() {
       </div>
     );
   }
-
-  const detail = project.detail || {};
-  const created = project.createdAt ? new Date(project.createdAt) : null;
-  const formattedDate = created
-    ? created.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
-    : "";
-  const contributorName = project.contributor || "User";
-  const contributorSlug = slugify(contributorName);
-  const coauthors = useMemo(
-    () => normalizeCoauthors(project.coauthors),
-    [project.coauthors]
-  );
-
-  useEffect(() => {
-    setShowCoauthors(false);
-  }, [coauthors.length]);
-  const recommended = useMemo(
-    () => pickRecommendedProjects(project.id, project.tags || []),
-    [project.id, project.tags]
-  );
-
-  const primaryTag = project.tags?.[0] || null;
-  const primaryBg = TAG_BG_COLORS[primaryTag] || "#D3C2CD";
 
   return (
     <div className="min-h-screen text-gray-900" style={{ backgroundColor: primaryBg }}>
