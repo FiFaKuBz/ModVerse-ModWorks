@@ -21,11 +21,11 @@ const CATEGORY_OPTIONS = [
 
 const CATEGORY_COLORS = {
   "UX/UI": "bg-mPurple text-black",
-  Transportation: "bg-mBlue text-black",
-  Database: "bg-mYellow text-black",
-  Algorithm: "bg-mGreen text-black",
+  "Transportation": "bg-mBlue text-black",
+  "Database": "bg-mYellow text-black",
+  "Algorithm": "bg-mGreen text-black",
   "Digital Circuit": "bg-mPink text-black",
-  "Data Visualization": "bg-amber-200 text-black",
+  "Data Visualization": "bg-mSalmon text-black",
 };
 
 const fileToDataUrl = (file) =>

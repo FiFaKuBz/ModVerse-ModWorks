@@ -4,16 +4,15 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
-
-const STORAGE_KEY = "mv_user_projects";
+import { getProject, listProjects } from "../api/projects";
 
 const TAG_BG_COLORS = {
-  "UX/UI": "#D3C2CD",
-  Transportation: "#92A2A6",
-  Database: "#EFCE7B",
-  Algorithm: "#CBD183",
-  "Digital Circuit": "#D17089",
-  "Data Visualization": "#FDBA74",
+  "UX/UI": "mPurple",
+  "Transportation": "mBlue",
+  "Database": "mYellow",
+  "Algorithm": "mGreen",
+  "Digital Circuit": "mPink",
+  "Data Visualization": "mSalmon",
 };
 
 const FALLBACK_RECOMMENDATIONS = [
@@ -43,16 +42,6 @@ const FALLBACK_RECOMMENDATIONS = [
   },
 ];
 
-const loadUserProjects = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
 const score7d = (metrics = {}) => {
   const { likes = 0, saves = 0, comments = 0 } = metrics;
   return likes + saves * 2 + comments * 3;
@@ -80,9 +69,11 @@ const normalizeCoauthors = (list = []) =>
     })
     .filter(Boolean);
 
-const pickRecommendedProjects = (currentId, tags = []) => {
-  const local = loadUserProjects().filter((p) => (p.public ?? true) && p.id !== currentId);
-  const pool = [...local, ...FALLBACK_RECOMMENDATIONS];
+const pickRecommendedProjects = (currentId, tags = [], source = []) => {
+  const dataset = Array.isArray(source)
+    ? source.filter((p) => (p?.public ?? true) && p?.id !== currentId)
+    : [];
+  const pool = [...dataset, ...FALLBACK_RECOMMENDATIONS];
   const sharesTag = (item) => item.tags?.some((tag) => tags?.includes(tag));
 
   const ordered = [
@@ -276,12 +267,60 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const [showCoauthors, setShowCoauthors] = useState(false);
   const [project, setProject] = useState(location.state?.project || null);
+  const [loading, setLoading] = useState(!location.state?.project);
+  const [notFound, setNotFound] = useState(false);
+  const [catalog, setCatalog] = useState([]);
 
   useEffect(() => {
-    if (project?.detail) return;
-    const hydrated = loadUserProjects().find((p) => p.id === id);
-    if (hydrated) setProject(hydrated);
-  }, [id, project]);
+    let canceled = false;
+    if (!id) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    const hydrate = async () => {
+      setLoading(true);
+      try {
+        const fetched = await getProject(id);
+        if (canceled) return;
+        if (!fetched) {
+          setNotFound(true);
+          setProject(null);
+          return;
+        }
+        setNotFound(false);
+        setProject(fetched);
+      } catch {
+        if (!canceled) setNotFound(true);
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    };
+
+    hydrate();
+
+    return () => {
+      canceled = true;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let canceled = false;
+    const fetchCatalog = async () => {
+      try {
+        const list = await listProjects();
+        if (canceled) return;
+        setCatalog(Array.isArray(list) ? list : []);
+      } catch {
+        if (!canceled) setCatalog([]);
+      }
+    };
+    fetchCatalog();
+    return () => {
+      canceled = true;
+    };
+  }, []);
 
   const detail = project?.detail || {};
   const created = project?.createdAt ? new Date(project.createdAt) : null;
@@ -300,15 +339,26 @@ export default function ProjectDetailPage() {
     setShowCoauthors(false);
   }, [coauthors.length]);
   const recommended = useMemo(() => {
-    if (!project) return [];
-    return pickRecommendedProjects(project.id, project.tags || []);
-  }, [project]);
+    if (!project) return FALLBACK_RECOMMENDATIONS;
+    return pickRecommendedProjects(project.id, project.tags || [], catalog);
+  }, [project, catalog]);
 
   const primaryTag = project?.tags?.[0] || null;
   const primaryBg = TAG_BG_COLORS[primaryTag] || "#D3C2CD";
   const isOwner = useMemo(() => id?.startsWith("u-"), [id]);
 
-  if (!project) {
+  if (loading && !project) {
+    return (
+      <div className="min-h-screen bg-[#D3C2CD] text-gray-900">
+        <LandingHeader />
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center text-gray-700">
+          กำลังโหลดโปรเจกต์...
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !project) {
     return (
       <div className="min-h-screen bg-[#D3C2CD] text-gray-900">
         <LandingHeader />

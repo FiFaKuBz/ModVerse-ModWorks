@@ -9,8 +9,7 @@ import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
 import Pagination from "../components/common/Pagination"; // ✅
-
-const STORAGE_KEY = "mv_user_projects";
+import { listProjects } from "../api/projects";
 
 const toSlug = (value = "") =>
   value
@@ -34,15 +33,35 @@ const normalizeCoauthors = (list = []) =>
     })
     .filter(Boolean);
 
-const loadUserProjects = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
+const SAMPLE_OTHER_CREATED = [
+  {
+    id: "other-data-viz",
+    title: "Data Visualization Hub",
+    contributor: "Lara Cooper",
+    tags: ["UX/UI", "Database"],
+    image:
+      "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    id: "other-urban-mobility",
+    title: "Urban Mobility Planner",
+    contributor: "Lara Cooper",
+    tags: ["Transportation", "UX/UI"],
+    image:
+      "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
+  },
+];
+
+const SAMPLE_OTHER_SAVED = [
+  {
+    id: "other-ai-diagnostic",
+    title: "AI Diagnostic Assistant",
+    contributor: "Noah",
+    tags: ["Algorithm", "Digital Circuit"],
+    image:
+      "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
+  },
+];
 
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g. /profile/lara-cooper
@@ -58,38 +77,7 @@ export default function OtherProfilePage() {
     showSavedPublicly: true,
   };
 
-  // --- Mock projects ---
-  const baseCreatedProjects = [
-    {
-      id: "other-data-viz",
-      title: "Data Visualization Hub",
-      contributor: "Lara Cooper",
-      tags: ["UX/UI", "Database"],
-      image:
-        "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      id: "other-urban-mobility",
-      title: "Urban Mobility Planner",
-      contributor: "Lara Cooper",
-      tags: ["Transportation", "UX/UI"],
-      image:
-        "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
-    },
-    // add more items if you want to see multiple pages
-  ];
-
-  const savedProjects = [
-    {
-      id: "other-ai-diagnostic",
-      title: "AI Diagnostic Assistant",
-      contributor: "Noah",
-      tags: ["Algorithm", "Digital Circuit"],
-      image:
-        "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
-    },
-  ];
-
+  const savedProjects = SAMPLE_OTHER_SAVED;
   // --- UI state ---
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Created");
@@ -98,12 +86,30 @@ export default function OtherProfilePage() {
   const PAGE_SIZE = 9;
   const [page, setPage] = useState(1);
 
-  const localProjects = useMemo(() => loadUserProjects(), []);
+  const [remoteProjects, setRemoteProjects] = useState([]);
 
-  const localMatches = useMemo(() => {
-    if (!username) return [];
-    return localProjects
+  useEffect(() => {
+    let canceled = false;
+    const loadProjects = async () => {
+      try {
+        const list = await listProjects();
+        if (canceled) return;
+        setRemoteProjects(Array.isArray(list) ? list : []);
+      } catch {
+        if (!canceled) setRemoteProjects([]);
+      }
+    };
+    loadProjects();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  const createdProjects = useMemo(() => {
+    if (!username) return SAMPLE_OTHER_CREATED;
+    const matches = remoteProjects
       .filter((project) => {
+        if (!project) return false;
         const ownerSlug = toSlug(project.contributor || "");
         if (ownerSlug === username) return true;
         return normalizeCoauthors(project.coauthors).some((co) => co.slug === username);
@@ -115,16 +121,17 @@ export default function OtherProfilePage() {
         tags: project.tags || [],
         image: project.image || "",
       }));
-  }, [localProjects, username]);
 
-  const seenIds = new Set(baseCreatedProjects.map((p) => p.id));
-  const createdProjects = [...baseCreatedProjects];
-  localMatches.forEach((project) => {
-    if (project.id && !seenIds.has(project.id)) {
-      seenIds.add(project.id);
-      createdProjects.push(project);
-    }
-  });
+    const seenIds = new Set();
+    const combined = [...matches, ...SAMPLE_OTHER_CREATED].filter((project) => {
+      const key = project.id || `${project.title}-${project.contributor}`;
+      if (!key || seenIds.has(key)) return false;
+      seenIds.add(key);
+      return true;
+    });
+
+    return combined;
+  }, [remoteProjects, username]);
 
   // reset to first page when tab/data changes
   useEffect(() => setPage(1), [activeTab, createdProjects.length, savedProjects.length]);

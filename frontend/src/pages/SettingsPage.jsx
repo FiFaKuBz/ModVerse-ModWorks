@@ -5,6 +5,7 @@ const KEY = "mv_2fa_enabled";
 export default function SettingPage() {
   // Default to enabled when not set
   const [enabled, setEnabled] = useState(() => {
+    // TODO(integration): replace this bootstrap logic with data fetched from the backend/user profile endpoint.
     const v = localStorage.getItem(KEY);
     if (v === null) {
       localStorage.setItem(KEY, "1");
@@ -31,6 +32,7 @@ export default function SettingPage() {
             onChange={(e) => {
               const v = e.target.checked;
               setEnabled(v);
+              // TODO(integration): call PATCH /settings or /auth/2fa endpoint instead of localStorage.
               localStorage.setItem(KEY, v ? "1" : "0");
             }}
           />
@@ -39,6 +41,7 @@ export default function SettingPage() {
 
         <button
           onClick={() => {
+            // TODO(integration): trigger backend reset endpoint and show real status messages.
             localStorage.setItem(KEY, "1");
             setEnabled(true);
             alert("2FA reset to default (enabled). (Mock)");

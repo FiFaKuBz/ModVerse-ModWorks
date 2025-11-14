@@ -1,22 +1,13 @@
 // src/pages/ShowCasePage.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
 import Pagination from "../components/common/Pagination";
-import { useSearchParams } from "react-router-dom";
 import CreateButton from "../components/common/CreateButton";
+import { listProjects } from "../api/projects";
 
-/* ---------- mock data + local user projects ---------- */
-const STORAGE_KEY = "mv_user_projects";
-function loadUserProjects() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
+/* ---------- mock data + helpers ---------- */
 const MOCK = [
   {
     id: "p1",
@@ -55,6 +46,18 @@ const MOCK = [
 ];
 
 const score7d = (m) => m.likes * 1 + m.saves * 2 + m.comments * 3;
+const mergeProjects = (primary = [], fallback = []) => {
+  const seen = new Set();
+  const output = [];
+  [...primary, ...fallback].forEach((item) => {
+    if (!item) return;
+    const key = item.id || `${item.title}-${item.contributor}`;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    output.push(item);
+  });
+  return output;
+};
 
 // Topic chip color mapping (copied from TopicTray.jsx)
 const tagColors = {
@@ -70,7 +73,8 @@ const tagColors = {
 
 export default function ShowcasePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState(MOCK);
 
   const pageFromUrl = Number(searchParams.get("page") || 1);
   // Use a new search param 'topics' for multi-select
@@ -84,61 +88,67 @@ export default function ShowcasePage() {
     return topicsParam.split(',').filter(t => t.trim() !== '');
   });
 
-  // Build the full topic list from your data
+  // Build the full topic list from real data + fallback
   const ALL_TOPICS = useMemo(() => {
     const s = new Set();
-    MOCK.forEach(p => p.tags?.forEach(t => s.add(t)));
-    // ensure the common ones exist even if mock misses some
-    ["UX/UI","Transportation","Database","Algorithm","Digital Circuit","Data Visualization"]
-      .forEach(t => s.add(t));
+    projects.forEach((p) => p.tags?.forEach((t) => s.add(t)));
+    ["UX/UI", "Transportation", "Database", "Algorithm", "Digital Circuit", "Data Visualization"].forEach(
+      (t) => s.add(t)
+    );
     return Array.from(s).sort();
+  }, [projects]);
+
+  useEffect(() => {
+    let canceled = false;
+    const hydrate = async () => {
+      setIsLoading(true);
+      try {
+        const remote = await listProjects();
+        if (canceled) return;
+        const arr = Array.isArray(remote) ? remote : [];
+        setProjects(mergeProjects(arr, MOCK));
+      } catch {
+        if (!canceled) setProjects([...MOCK]);
+      } finally {
+        if (!canceled) setIsLoading(false);
+      }
+    };
+    hydrate();
+    return () => {
+      canceled = true;
+    };
   }, []);
 
   useEffect(() => {
     const sp = new URLSearchParams(searchParams);
     sp.set("page", String(page));
-    // Store array as comma-separated string, or "all" if empty
-    const topicParam = selectedTopics.length > 0 ? selectedTopics.join(',') : "all";
+    const topicParam = selectedTopics.length > 0 ? selectedTopics.join(",") : "all";
     sp.set("topics", topicParam);
-    
-    // Cleanup the old 'topic' parameter if it exists
     sp.delete("topic");
-
     setSearchParams(sp, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, selectedTopics]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    const t = setTimeout(() => setIsLoading(false), 250);
-    return () => clearTimeout(t);
-  }, [page, selectedTopics]);
-
   const filteredSorted = useMemo(() => {
-    const USER = loadUserProjects();
-    const userCards = USER.filter((p) => p.public).map((p) => ({
-      id: p.id,
-      title: p.title,
-      contributor: p.contributor || "You",
-      tags: p.tags || [],
-      image: p.image || "",
-      metrics7d: p.metrics7d || { likes: 0, saves: 0, comments: 0 },
-    }));
-    const joined = [...userCards, ...MOCK];
     const isShowAll =
       selectedTopics.length === 0 || selectedTopics.length === ALL_TOPICS.length;
 
+    const dataset = projects.map((item) => ({
+      ...item,
+      metrics7d: item.metrics7d || { likes: 0, saves: 0, comments: 0 },
+    }));
+
     if (isShowAll) {
-      return [...joined].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
+      return [...dataset].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
     }
 
-    const filtered = joined.filter((project) => {
+    const filtered = dataset.filter((project) => {
       const tags = project.tags || [];
       return selectedTopics.every((selectedTag) => tags.includes(selectedTag));
     });
 
     return filtered.sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
-  }, [selectedTopics, ALL_TOPICS.length]);
+  }, [selectedTopics, ALL_TOPICS.length, projects]);
 
   const PER_PAGE = 9;
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PER_PAGE));
