@@ -125,20 +125,19 @@ export default function ShowcasePage() {
       metrics7d: p.metrics7d || { likes: 0, saves: 0, comments: 0 },
     }));
     const joined = [...userCards, ...MOCK];
-    const base = topic === "all" ? joined : joined.filter(p => p.tags.includes(topic));
-    // Determine if we should show ALL projects (if no topics selected OR all topics are selected)
-    const isShowAll = selectedTopics.length === 0 || selectedTopics.length === ALL_TOPICS.length;
+    const isShowAll =
+      selectedTopics.length === 0 || selectedTopics.length === ALL_TOPICS.length;
 
     if (isShowAll) {
-      return [...MOCK].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
+      return [...joined].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
     }
-    
-    // Filter: project must include ALL selected topics (AND logic)
-    const base = MOCK.filter(p => 
-      // Check if p.tags exists and every selected tag is present in p.tags
-      p.tags && selectedTopics.every(selectedTag => p.tags.includes(selectedTag))
-    );
-    return [...base].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
+
+    const filtered = joined.filter((project) => {
+      const tags = project.tags || [];
+      return selectedTopics.every((selectedTag) => tags.includes(selectedTag));
+    });
+
+    return filtered.sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
   }, [selectedTopics, ALL_TOPICS.length]);
 
   const PER_PAGE = 9;
