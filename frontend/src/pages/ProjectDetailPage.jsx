@@ -8,12 +8,12 @@ import ProjectCard from "../components/Profile/ProjectCard";
 const STORAGE_KEY = "mv_user_projects";
 
 const TAG_BG_COLORS = {
-  "UX/UI": "#D3C2CD",
-  Transportation: "#92A2A6",
-  Database: "#EFCE7B",
-  Algorithm: "#CBD183",
-  "Digital Circuit": "#D17089",
-  "Data Visualization": "#FDBA74",
+  "UX/UI": "mPurple",
+  Transportation: "mBlue",
+  Database: "mYellow",
+  Algorithm: "mGreen",
+  "Digital Circuit": "mPink",
+  "Data Visualization": "mSalmon",
 };
 
 const FALLBACK_RECOMMENDATIONS = [
