@@ -1,5 +1,5 @@
 // src/pages/OtherProfilePage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import BackButton from "../components/common/BackButton";
@@ -9,6 +9,40 @@ import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
 import Pagination from "../components/common/Pagination"; // ✅
+
+const STORAGE_KEY = "mv_user_projects";
+
+const toSlug = (value = "") =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9ก-๙\s-]/g, "")
+    .replace(/\s+/g, "-");
+
+const normalizeCoauthors = (list = []) =>
+  list
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        const name = item.trim();
+        if (!name) return null;
+        return { name, slug: toSlug(name) };
+      }
+      const name = item.name?.trim() || "";
+      if (!name) return null;
+      return { name, slug: item.slug || toSlug(name) };
+    })
+    .filter(Boolean);
+
+const loadUserProjects = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g. /profile/lara-cooper
@@ -25,8 +59,9 @@ export default function OtherProfilePage() {
   };
 
   // --- Mock projects ---
-  const createdProjects = [
+  const baseCreatedProjects = [
     {
+      id: "other-data-viz",
       title: "Data Visualization Hub",
       contributor: "Lara Cooper",
       tags: ["UX/UI", "Database"],
@@ -34,6 +69,7 @@ export default function OtherProfilePage() {
         "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
     },
     {
+      id: "other-urban-mobility",
       title: "Urban Mobility Planner",
       contributor: "Lara Cooper",
       tags: ["Transportation", "UX/UI"],
@@ -45,6 +81,7 @@ export default function OtherProfilePage() {
 
   const savedProjects = [
     {
+      id: "other-ai-diagnostic",
       title: "AI Diagnostic Assistant",
       contributor: "Noah",
       tags: ["Algorithm", "Digital Circuit"],
@@ -60,6 +97,34 @@ export default function OtherProfilePage() {
   // --- Pagination (9 per page) ---
   const PAGE_SIZE = 9;
   const [page, setPage] = useState(1);
+
+  const localProjects = useMemo(() => loadUserProjects(), []);
+
+  const localMatches = useMemo(() => {
+    if (!username) return [];
+    return localProjects
+      .filter((project) => {
+        const ownerSlug = toSlug(project.contributor || "");
+        if (ownerSlug === username) return true;
+        return normalizeCoauthors(project.coauthors).some((co) => co.slug === username);
+      })
+      .map((project) => ({
+        id: project.id,
+        title: project.title,
+        contributor: project.contributor || "Unknown",
+        tags: project.tags || [],
+        image: project.image || "",
+      }));
+  }, [localProjects, username]);
+
+  const seenIds = new Set(baseCreatedProjects.map((p) => p.id));
+  const createdProjects = [...baseCreatedProjects];
+  localMatches.forEach((project) => {
+    if (project.id && !seenIds.has(project.id)) {
+      seenIds.add(project.id);
+      createdProjects.push(project);
+    }
+  });
 
   // reset to first page when tab/data changes
   useEffect(() => setPage(1), [activeTab, createdProjects.length, savedProjects.length]);
@@ -105,7 +170,7 @@ export default function OtherProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, idx) => (
-                <ProjectCard key={`${project.title}-${idx}`} project={project} />
+                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">
@@ -136,3 +201,4 @@ export default function OtherProfilePage() {
     </div>
   );
 }
+
