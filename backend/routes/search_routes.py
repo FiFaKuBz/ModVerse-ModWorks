@@ -9,7 +9,7 @@ Example usage:
 from typing import List, Tuple, Dict, Optional, Any
 from flask import Blueprint, request, current_app, jsonify
 
-from models.search import ensure_tags_index
+from ..models.search import ensure_tags_index
 
 search_bp = Blueprint("search", __name__)
 
