@@ -6,6 +6,7 @@ import ProjectCard from "../components/Profile/ProjectCard";
 import Pagination from "../components/common/Pagination";
 import CreateButton from "../components/common/CreateButton";
 import { listProjects } from "../api/projects";
+import { getTopicChipClass } from "../constants/topicColors";
 
 /* ---------- mock data + helpers ---------- */
 const MOCK = [
@@ -60,14 +61,6 @@ const mergeProjects = (primary = [], fallback = []) => {
 };
 
 // Topic chip color mapping (copied from TopicTray.jsx)
-const tagColors = {
-  "UX/UI": "bg-mPurple text-black",
-  Transportation: "bg-mBlue text-black",
-  Database: "bg-mYellow text-black",
-  Algorithm: "bg-mGreen text-black",
-  "Digital Circuit": "bg-mPink text-black",
-  "Data Visualization": "bg-amber-200 text-black",
-};
 
 /* ------------------------------------------- */
 
@@ -206,7 +199,7 @@ export default function ShowcasePage() {
                 <div
                   key={topic}
                   className={`inline-flex items-center rounded-full px-2 py-1 text-base font-semibold border-black border ${
-                    tagColors[topic] || "bg-gray-100 text-black"
+                    getTopicChipClass(topic) || "bg-gray-100 text-black"
                   }`}
                 >
                   {topic}
@@ -246,3 +239,4 @@ export default function ShowcasePage() {
     </div>
   );
 }
+
