@@ -11,6 +11,7 @@ from .auth.otp_service import OTPService
 from .routes.auth_routes import auth_bp, init_auth_routes
 from .routes.users_routes import user_bp, init_user_routes
 from .routes.project_routes import project_bp, init_project_routes
+from .routes.search_routes import search_bp  # NEW
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
@@ -54,6 +55,7 @@ init_project_routes(project_model)
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(user_bp, url_prefix='/api/users')
 app.register_blueprint(project_bp, url_prefix='/api/project')
+app.register_blueprint(search_bp, url_prefix='/api/search')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

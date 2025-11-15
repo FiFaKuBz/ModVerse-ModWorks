@@ -24,6 +24,9 @@ class Config:
     # OAuth URLs
     AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
     TOKEN_URL = "https://oauth2.googleapis.com/token"
+    
+    # Search settings
+    SEARCH_PAGE_SIZE = int(os.getenv("SEARCH_PAGE_SIZE", 20))  # NEW
 
     # Email settings for OTP
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
