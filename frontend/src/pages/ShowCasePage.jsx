@@ -4,8 +4,19 @@ import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
 import Pagination from "../components/common/Pagination";
 import { useSearchParams } from "react-router-dom";
+import CreateButton from "../components/common/CreateButton";
 
-/* ---------- mock data (unchanged) ---------- */
+/* ---------- mock data + local user projects ---------- */
+const STORAGE_KEY = "mv_user_projects";
+function loadUserProjects() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
 const MOCK = [
   {
     id: "p1",
@@ -209,6 +220,8 @@ export default function ShowcasePage() {
         {/* --- END MODIFIED SECTION --- */}
 
       </div>
+      {/* Floating Create button */}
+      <CreateButton />
     </div>
   );
 }
