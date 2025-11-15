@@ -4,7 +4,6 @@ import LandingHeader from "../components/Landing/LandingHeader";
 export default function LandingAboutPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      
       <LandingHeader variant="login" />
       
       <main className="flex-grow px-4 py-20 bg-mOrange text-white"> 

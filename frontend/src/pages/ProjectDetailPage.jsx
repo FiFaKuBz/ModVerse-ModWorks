@@ -282,6 +282,7 @@ export default function ProjectDetailPage() {
     const hydrate = async () => {
       setLoading(true);
       try {
+        // Integration note: `getProject` is the canonical fetch; adjust that helper if backend schema shifts.
         const fetched = await getProject(id);
         if (canceled) return;
         if (!fetched) {
@@ -309,6 +310,7 @@ export default function ProjectDetailPage() {
     let canceled = false;
     const fetchCatalog = async () => {
       try {
+        // Integration note: catalog comes from `listProjects` so recommendations always share the same data source.
         const list = await listProjects();
         if (canceled) return;
         setCatalog(Array.isArray(list) ? list : []);

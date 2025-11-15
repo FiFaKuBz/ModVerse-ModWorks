@@ -215,6 +215,7 @@ export default function EditProjectPage() {
       setLoading(true);
       setNotFound(false);
       try {
+        // Integration note: `getProject` consolidates API/local fallback; update helper only if backend contract changes.
         const project = await getProject(id);
         if (canceled) return;
         if (!project) {
@@ -306,6 +307,7 @@ export default function EditProjectPage() {
     };
 
     try {
+      // Integration note: `updateProject` is the single outbound call for edits; extend payload here if backend expects more fields.
       const updated = await updateProject(id, payload);
       if (!updated) {
         alert("ไม่พบโปรเจกต์นี้");

@@ -103,6 +103,7 @@ export default function ShowcasePage() {
     const hydrate = async () => {
       setIsLoading(true);
       try {
+        // Integration note: `listProjects` is the single entry point for showcase data; update helper if backend schema or endpoint changes.
         const remote = await listProjects();
         if (canceled) return;
         const arr = Array.isArray(remote) ? remote : [];

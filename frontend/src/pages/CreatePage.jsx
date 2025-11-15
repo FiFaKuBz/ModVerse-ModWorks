@@ -206,6 +206,7 @@ export default function CreatePage() {
       },
     };
 
+    // Integration note: `createProject` is the single point to swap once the backend POST changes.
     const saved = await createProject(payload);
     navigate(`/project/${saved.id}`, { state: { project: saved } });
   };

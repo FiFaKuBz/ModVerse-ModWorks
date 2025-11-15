@@ -10,6 +10,7 @@ import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
 import Pagination from "../components/common/Pagination";
 import { listProjects } from "../api/projects";
+import { getProfile } from "../api/profile";
 
 const slugify = (value = "") =>
   value
@@ -51,19 +52,22 @@ const SAMPLE_SAVED = [
   { id: "demo-smart-traffic", title: "Smart Traffic Dashboard", contributor: "Ava", tags: ["Transportation", "Database", "UX/UI"], image: "https://optraffic.com/wp-content/uploads/2024/06/Traffic-Congestion-1200-900-1024x768.jpg" },
 ];
 
+const FALLBACK_PROFILE = {
+  avatar: "",
+  username: "Username",
+  description: "description",
+  email: "Email@gmail.com",
+  followers: 0,
+  following: 0,
+  likes: 0,
+  showSavedPublicly: true,
+};
+
 export default function ProfilePage() {
   const navigate = useNavigate();
 
-  const [profile] = useState({
-    avatar: "",
-    username: "Username",
-    description: "description",
-    email: "Email@gmail.com",
-    followers: 0,
-    following: 0,
-    showSavedPublicly: true,
-  });
-
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [savedProjects, setSavedProjects] = useState([]);
   const [activeTab, setActiveTab] = useState("Created");
@@ -78,8 +82,32 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let canceled = false;
+    const loadProfile = async () => {
+      try {
+        const data = await getProfile();
+        if (!canceled && data) {
+          setProfile(data);
+        }
+      } catch {
+        if (!canceled) setProfile(FALLBACK_PROFILE);
+      } finally {
+        if (!canceled) setProfileLoading(false);
+      }
+    };
+    loadProfile();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  const resolvedProfile = profile || FALLBACK_PROFILE;
+  const profileUsername = resolvedProfile.username || "";
+
+  useEffect(() => {
+    let canceled = false;
     const fetchData = async () => {
-      const ownerSlug = slugify(profile.username || "");
+      const fallbackContributor = profileUsername || FALLBACK_PROFILE.username;
+      const ownerSlug = slugify(profileUsername);
       try {
         const remote = await listProjects();
         if (canceled) return;
@@ -94,7 +122,7 @@ export default function ProfilePage() {
           .map((item) => ({
             id: item.id,
             title: item.title,
-            contributor: item.contributor || profile.username,
+            contributor: item.contributor || fallbackContributor,
             tags: item.tags || [],
             image: item.image || "",
           }));
@@ -120,7 +148,7 @@ export default function ProfilePage() {
     return () => {
       canceled = true;
     };
-  }, [profile.username]);
+  }, [profileUsername]);
 
   // Dataset by tab
   const list = activeTab === "Saved" ? savedProjects : projects;
@@ -129,16 +157,24 @@ export default function ProfilePage() {
   const start = (safePage - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
 
+  if (profileLoading && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
+        กำลังโหลดโปรไฟล์...
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-white text-gray-900 font-['Anuphan']">
       <BackButton />
 
       <div className="w-full max-w-[1600px] mx-auto px-[clamp(1rem,4vw,5rem)]">
-        <ProfileHeader profile={profile} />
+        <ProfileHeader profile={resolvedProfile} />
 
         <ProfileStats
-          followers={profile.followers}
-          following={profile.following}
+          followers={resolvedProfile.followers}
+          following={resolvedProfile.following}
           onShare={() => setIsShareOpen(true)}
           onEdit={() => navigate("/edit-profile")}
         />
@@ -147,7 +183,7 @@ export default function ProfilePage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           isOwner={true}
-          showSavedPublicly={profile.showSavedPublicly}
+          showSavedPublicly={resolvedProfile.showSavedPublicly}
           showRecruiter={false}
         />
 

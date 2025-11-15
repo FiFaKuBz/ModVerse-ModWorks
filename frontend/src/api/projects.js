@@ -1,3 +1,6 @@
+// Projects API helper --------------------------------------------------------
+// Centralizes all project CRUD calls. Falls back to localStorage to keep the
+// app responsive when the backend is offline or still under development.
 const STORAGE_KEY = "mv_user_projects";
 const API_BASE = "/api/projects";
 
@@ -28,6 +31,7 @@ const request = async (endpoint, options) => {
   return res.json();
 };
 
+// GET /api/projects
 export async function listProjects() {
   try {
     const remote = await request("", { method: "GET" });
@@ -37,6 +41,7 @@ export async function listProjects() {
   }
 }
 
+// GET /api/projects/:id
 export async function getProject(id) {
   try {
     const remote = await request(`/${id}`, { method: "GET" });
@@ -49,6 +54,7 @@ export async function getProject(id) {
 
 const generateLocalId = () => `u-${Date.now()}`;
 
+// POST /api/projects
 export async function createProject(project) {
   try {
     const created = await request("", {
@@ -66,6 +72,7 @@ export async function createProject(project) {
   return withId;
 }
 
+// PATCH /api/projects/:id
 export async function updateProject(id, updates) {
   try {
     const updated = await request(`/${id}`, {

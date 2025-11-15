@@ -10,6 +10,7 @@ import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
 import Pagination from "../components/common/Pagination"; // ✅
 import { listProjects } from "../api/projects";
+import { getProfileBySlug } from "../api/profile";
 
 const toSlug = (value = "") =>
   value
@@ -66,16 +67,17 @@ const SAMPLE_OTHER_SAVED = [
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g. /profile/lara-cooper
 
-  // --- Mock profile (replace with backend later) ---
-  const userProfile = {
+  const fallbackProfile = {
     avatar: "",
-    username: username || "Lara Cooper",
+    username: username ? username.replace(/-/g, " ") : "Lara Cooper",
     description: "interested in Data Visualization",
     followers: 100,
     following: 10,
     likes: 1000,
     showSavedPublicly: true,
   };
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const savedProjects = SAMPLE_OTHER_SAVED;
   // --- UI state ---
@@ -87,6 +89,31 @@ export default function OtherProfilePage() {
   const [page, setPage] = useState(1);
 
   const [remoteProjects, setRemoteProjects] = useState([]);
+
+  useEffect(() => {
+    let canceled = false;
+    const loadProfile = async () => {
+      if (!username) {
+        setProfile(null);
+        setProfileLoading(false);
+        return;
+      }
+      try {
+        const data = await getProfileBySlug(username);
+        if (!canceled && data) {
+          setProfile(data);
+        }
+      } catch {
+        if (!canceled) setProfile(null);
+      } finally {
+        if (!canceled) setProfileLoading(false);
+      }
+    };
+    loadProfile();
+    return () => {
+      canceled = true;
+    };
+  }, [username]);
 
   useEffect(() => {
     let canceled = false;
@@ -142,6 +169,15 @@ export default function OtherProfilePage() {
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
+  const resolvedProfile = profile || fallbackProfile;
+
+  if (profileLoading && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
+        กำลังโหลดโปรไฟล์...
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-white text-gray-900 font-['Anuphan']">
@@ -149,13 +185,13 @@ export default function OtherProfilePage() {
 
       <div className="w-full max-w-[1600px] mx-auto px-[clamp(1rem,4vw,5rem)]">
         {/* Profile header */}
-        <ProfileHeader profile={userProfile} />
+        <ProfileHeader profile={resolvedProfile} />
 
         {/* Stats & Actions (Share/Follow/Menu handled inside ProfileStats) */}
         <ProfileStats
-          followers={userProfile.followers}
-          following={userProfile.following}
-          likes={userProfile.likes}
+          followers={resolvedProfile.followers}
+          following={resolvedProfile.following}
+          likes={resolvedProfile.likes}
           showLikes
           showEdit={false}
           showFollow
@@ -168,7 +204,7 @@ export default function OtherProfilePage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           isOwner={false}
-          showSavedPublicly={userProfile.showSavedPublicly}
+          showSavedPublicly={resolvedProfile.showSavedPublicly}
           showRecruiter={false}
         />
 
