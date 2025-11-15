@@ -45,8 +45,8 @@ export default function LandingHeader({
         credentials: "include",
       });
 
-      if (response.ok) {
-        localStorage.removeItem("user_token");
+      if (response.ok) { // Backend returns 200 OK on success
+        localStorage.removeItem("user_token"); // Keep this line if it's used elsewhere
         logout();
         setOpenMenu(false);
         navigate("/");
