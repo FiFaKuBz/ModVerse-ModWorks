@@ -1,13 +1,5 @@
 import { useNavigate } from "react-router-dom";
-
-const tagColors = {
-  "UX/UI": "bg-mPurple text-black",
-  "Transportation": "bg-mBlue text-black",
-  "Database": "bg-mYellow text-black",
-  "Algorithm": "bg-mGreen text-black",
-  "Digital Circuit": "bg-mPink text-black",
-  "Data Visualization": "bg-mSalmon text-black",
-};
+import { getTopicChipClass } from "../../constants/topicColors";
 
 export default function ProjectCard({ project }) {
   const navigate = useNavigate();
@@ -81,7 +73,7 @@ export default function ProjectCard({ project }) {
                 {visible.map((tag, i) => (
                   <span
                     key={i}
-                    className={`px-3 h-[26px] rounded-[20px] flex items-center justify-center text-[0.875rem] font-IBM ${tagColors[tag] || "bg-gray-100 text-black"}`}
+                    className={`px-3 h-[26px] rounded-[20px] flex items-center justify-center text-[0.875rem] font-IBM ${getTopicChipClass(tag) || "bg-gray-100 text-black"}`}
                   >
                     {tag}
                   </span>

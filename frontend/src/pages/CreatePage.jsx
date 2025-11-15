@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import { createProject } from "../api/projects";
+import { getTopicChipClass } from "../constants/topicColors";
 
 const slugify = (value = "") =>
   value
@@ -18,15 +19,6 @@ const CATEGORY_OPTIONS = [
   "Digital Circuit",
   "Data Visualization",
 ];
-
-const CATEGORY_COLORS = {
-  "UX/UI": "bg-mPurple text-black",
-  Transportation: "bg-mBlue text-black",
-  Database: "bg-mYellow text-black",
-  Algorithm: "bg-mGreen text-black",
-  "Digital Circuit": "bg-mPink text-black",
-  "Data Visualization": "bg-amber-200 text-black",
-};
 
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -393,7 +385,7 @@ export default function CreatePage() {
                 const activeIndex = form.categories.findIndex((item) => item === tag);
                 const isActive = activeIndex !== -1;
                 const badge = isActive ? activeIndex + 1 : null;
-                const colorClass = CATEGORY_COLORS[tag] || "bg-neutral-200 text-neutral-800";
+                const colorClass = getTopicChipClass(tag) || "bg-neutral-200 text-neutral-800";
                 return (
                   <button
                     type="button"

@@ -5,15 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
 import { getProject, listProjects } from "../api/projects";
-
-const TAG_BG_COLORS = {
-  "UX/UI": "mPurple",
-  "Transportation": "mBlue",
-  "Database": "mYellow",
-  "Algorithm": "mGreen",
-  "Digital Circuit": "mPink",
-  "Data Visualization": "mSalmon",
-};
+import { getTopicDetailBg } from "../constants/topicColors";
 
 const FALLBACK_RECOMMENDATIONS = [
   {
@@ -346,7 +338,7 @@ export default function ProjectDetailPage() {
   }, [project, catalog]);
 
   const primaryTag = project?.tags?.[0] || null;
-  const primaryBg = TAG_BG_COLORS[primaryTag] || "#D3C2CD";
+  const primaryBg = getTopicDetailBg(primaryTag) || "#D3C2CD";
   const isOwner = useMemo(() => id?.startsWith("u-"), [id]);
 
   if (loading && !project) {
