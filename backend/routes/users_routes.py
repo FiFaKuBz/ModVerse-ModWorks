@@ -1,7 +1,7 @@
 from flask import Blueprint, session, jsonify, request
 from bson import ObjectId
 from bson.errors import InvalidId
-from auth.decorators import login_required
+from ..auth.decorators import role_required
 from typing import List, Optional
 
 user_bp = Blueprint("user", __name__)
@@ -15,6 +15,7 @@ def init_user_routes(model):
     user_model = model
 
 @user_bp.route("/profile")
+@role_required()
 def whoami():
     """แสดงข้อมูลผู้ใช้ที่ล็อกอินอยู่"""
     u = session.get("user")
@@ -30,13 +31,13 @@ def whoami():
     return jsonify(auth=True, user=user_doc)
 
 @user_bp.route("/dashboard")
-@login_required
+@role_required()
 def dashboard():
     """หน้า dashboard สำหรับผู้ใช้ที่ล็อกอินแล้ว"""
     return f"ยินดีต้อนรับ {session['user']['name']}!"
 
 @user_bp.route("/api/profile/update", methods=["PUT"])
-@login_required
+@role_required()
 def update_profile():
     """อัพเดทข้อมูลโปรไฟล์ของผู้ใช้ รวมถึง tags"""
     try:
@@ -91,3 +92,9 @@ def update_profile():
                 "message": str(e)
             }
         }), 500
+# --- NEW: ADMIN-ONLY ROUTE FOR RBAC DEMO ---
+@user_bp.route("/admin_panel")
+@role_required(allowed_roles="admin") # <<< RBAC ENFORCEMENT
+def admin_panel():
+    """Admin-only resource (requires role: 'admin')"""
+    return jsonify(message=f"Welcome, Admin. Access Granted to: {session['user']['name']}"), 200

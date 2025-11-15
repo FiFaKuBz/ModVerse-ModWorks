@@ -1,0 +1,12 @@
+import { Navigate, Outlet } from "react-router-dom";
+import { useSession } from "./SessionProvider";
+
+export default function ProtectedRoute({ children }) {
+  const { expiresAt } = useSession();
+  if (!expiresAt || Date.now() > expiresAt) {
+    return <Navigate to="/" replace />;
+  }
+  // When used as <Route element={<ProtectedRoute />}>,
+  // render nested routes via <Outlet />
+  return children || <Outlet />;
+}

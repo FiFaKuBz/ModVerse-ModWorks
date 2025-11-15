@@ -1,168 +1,149 @@
+// src/pages/ProfilePage.jsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 import BackButton from "../components/common/BackButton";
 import ProfileHeader from "../components/Profile/ProfileHeader";
 import ProfileStats from "../components/Profile/ProfileStats";
 import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
-import RecruiterRequestsTable from "../components/Profile/RecruiterRequestsTable";
-import { useNavigate } from "react-router-dom";
+import Pagination from "../components/common/Pagination";
+
+const STORAGE_KEY = "mv_user_projects";
+
+const slugify = (value = "") =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9ก-๙\s-]/g, "")
+    .replace(/\s+/g, "-");
+
+const normalizeCoauthors = (list = []) =>
+  (list || [])
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        const name = item.trim();
+        if (!name) return null;
+        return { name, slug: slugify(name) };
+      }
+      const name = item.name?.trim() || "";
+      if (!name) return null;
+      return { name, slug: item.slug || slugify(name) };
+    })
+    .filter(Boolean);
+
+const loadUserProjects = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 export default function ProfilePage() {
   const navigate = useNavigate();
 
-  
-  // --- Profile info (mock data; ready for backend) ---
-  const [profile, setProfile] = useState({
+  const [profile] = useState({
     avatar: "",
     username: "Username",
-    description: "description", // bio field
+    description: "description",
     email: "Email@gmail.com",
     followers: 0,
     following: 0,
-    showSavedPublicly: true, // controls visibility of "Saved" tab
+    showSavedPublicly: true,
   });
 
-  // --- Data states ---
   const [projects, setProjects] = useState([]);
   const [savedProjects, setSavedProjects] = useState([]);
-  const [recruiterRequests, setRecruiterRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("Created");
   const [isShareOpen, setIsShareOpen] = useState(false);
 
-  // --- Mock fetching (ready for backend integration) ---
+  // Pagination
+  const PAGE_SIZE = 9;
+  const [page, setPage] = useState(1);
+
+  // Reset to page 1 whenever the tab or dataset changes
+  useEffect(() => setPage(1), [activeTab, projects.length, savedProjects.length]);
+
   useEffect(() => {
     const fetchData = async () => {
       const userProjects = [
-        {
-          title: "UI System",
-          contributor: "Jane",
-          tags: ["UX/UI", "Database", "Transportation", "Digital Circuit", "Algorithm"],
-          image: "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          title: "Cloud Engine",
-          contributor: "John",
-          tags: ["Algorithm", "Database"],
-          image: "",
-        },
-        {
-          title: "Smart Car",
-          contributor: "Alex",
-          tags: ["Transportation", "Digital Circuit"],
-          image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          title: "Circuit Analyzer",
-          contributor: "Mia",
-          tags: ["Digital Circuit", "Algorithm"],
-          image: "https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          title: "Urban Mobility Planner",
-          contributor: "Liam",
-          tags: ["Transportation", "UX/UI"],
-          image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
-        },
-        {
-          title: "Data Visualization Hub",
-          contributor: "Ella",
-          tags: ["Database", "UX/UI"],
-          image: "https://editor.analyticsvidhya.com/uploads/805881.1.png",
-        },
+        { id: "demo-ui-system", title: "UI System", contributor: "Jane", tags: ["UX/UI", "Database"], image: "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80" },
+        { id: "demo-cloud-engine", title: "Cloud Engine", contributor: "John", tags: ["Algorithm", "Database"], image: "" },
+        { id: "demo-smart-car", title: "Smart Car", contributor: "Alex", tags: ["Transportation", "Digital Circuit"], image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80" },
+        { id: "demo-circuit-analyzer", title: "Circuit Analyzer", contributor: "Mia", tags: ["Digital Circuit", "Algorithm"], image: "https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&w=800&q=80" },
+        { id: "demo-urban-mobility", title: "Urban Mobility Planner", contributor: "Liam", tags: ["Transportation", "UX/UI"], image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg" },
+        { id: "demo-data-viz", title: "Data Visualization Hub", contributor: "Ella", tags: ["Database", "UX/UI"], image: "https://editor.analyticsvidhya.com/uploads/805881.1.png" },
+        { id: "demo-edge-mapper", title: "Edge Mapper", contributor: "Kai", tags: ["Algorithm"], image: "" },
+        { id: "demo-city-twins", title: "City Twins", contributor: "May", tags: ["UX/UI"], image: "" },
+        { id: "demo-path-planner", title: "Path Planner", contributor: "Neo", tags: ["Transportation"], image: "" },
+        { id: "demo-sensor-fusion", title: "Sensor Fusion", contributor: "Ivy", tags: ["Digital Circuit"], image: "" },
       ];
 
       const userSaved = [
-        {
-          title: "AI Diagnostic Assistant",
-          contributor: "Noah",
-          tags: ["Algorithm", "Digital Circuit"],
-          image: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          title: "Smart Traffic Dashboard",
-          contributor: "Ava",
-          tags: ["Transportation", "Database", "UX/UI"],
-          image: "https://optraffic.com/wp-content/uploads/2024/06/Traffic-Congestion-1200-900-1024x768.jpg",
-        },
+        { id: "demo-ai-diagnostic", title: "AI Diagnostic Assistant", contributor: "Noah", tags: ["Algorithm", "Digital Circuit"], image: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80" },
+        { id: "demo-smart-traffic", title: "Smart Traffic Dashboard", contributor: "Ava", tags: ["Transportation", "Database", "UX/UI"], image: "https://optraffic.com/wp-content/uploads/2024/06/Traffic-Congestion-1200-900-1024x768.jpg" },
       ];
 
-      const recruiterList = [
-        { name: "Username", email: "Email@gmail.com", date: "20/09/2025" },
-        { name: "Username", email: "Email@gmail.com", date: "20/09/2025" },
-        { name: "Username", email: "Email@gmail.com", date: "20/09/2025" },
-        { name: "Username", email: "Email@gmail.com", date: "20/09/2025" },
-        { name: "Username", email: "Email@gmail.com", date: "20/09/2025" },
-        { name: "Username", email: "Email@gmail.com", date: "20/09/2025" },
-      ];
+      await new Promise((r) => setTimeout(r, 150));
+      const local = loadUserProjects();
+      const ownerSlug = slugify(profile.username || "");
 
-      // Simulate network delay (remove later)
-      await new Promise((res) => setTimeout(res, 300));
+      const localCards = (local || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        contributor: p.contributor || "You",
+        tags: p.tags || [],
+        image: p.image || "",
+      }));
 
-      setProjects(userProjects);
+      const coauthoredCards = (local || [])
+        .filter((p) => normalizeCoauthors(p.coauthors).some((co) => co.slug === ownerSlug))
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          contributor: p.contributor || "Unknown",
+          tags: p.tags || [],
+          image: p.image || "",
+        }));
+
+      const seen = new Set();
+      const combined = [...localCards, ...coauthoredCards, ...userProjects].filter((proj) => {
+        const key = proj.id || `${proj.title}-${proj.contributor}`;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setProjects(combined);
       setSavedProjects(userSaved);
-      setRecruiterRequests(recruiterList);
     };
-
     fetchData();
-  }, []);
+  }, [profile.username]);
 
-  // --- Render content by active tab ---
-  let content;
-  if (activeTab === "Created") {
-    content = (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[59px] justify-center">
-        {projects.length > 0 ? (
-          projects.map((p, i) => <ProjectCard key={i} project={p} />)
-        ) : (
-          <p className="col-span-full text-center text-gray-400">No projects yet.</p>
-        )}
-      </div>
-    );
-  } else if (activeTab === "Saved" && profile.showSavedPublicly) {
-    content = (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[59px] justify-center">
-        {savedProjects.length > 0 ? (
-          savedProjects.map((p, i) => <ProjectCard key={i} project={p} />)
-        ) : (
-          <p className="col-span-full text-center text-gray-400">No saved projects yet.</p>
-        )}
-      </div>
-    );
-  } else if (activeTab === "Recruiter Requests") {
-    content = <RecruiterRequestsTable requests={recruiterRequests} />;
-  } else {
-    content = <p className="text-center text-gray-400">Nothing to show.</p>;
-  }
-
-  // --- (Future) Backend sync handler placeholder ---
-  const handleBackendSync = async (updatedData) => {
-    try {
-      console.log("📤 Syncing with backend...", updatedData);
-      // Example:
-      // await fetch(`/api/user/${profile.id}`, {
-      //   method: "PUT",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(updatedData),
-      // });
-    } catch (err) {
-      console.error("❌ Backend sync failed:", err);
-    }
-  };
+  // Dataset by tab
+  const list = activeTab === "Saved" ? savedProjects : projects;
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
 
   return (
     <div className="relative min-h-screen bg-white text-gray-900 font-['Anuphan']">
-      {/* Back Button */}
       <BackButton />
 
-      {/* Container */}
       <div className="w-full max-w-[1600px] mx-auto px-[clamp(1rem,4vw,5rem)]">
         <ProfileHeader profile={profile} />
+
         <ProfileStats
           followers={profile.followers}
           following={profile.following}
           onShare={() => setIsShareOpen(true)}
-          onEdit={() => navigate("/edit-profile")} // Add this
+          onEdit={() => navigate("/edit-profile")}
         />
 
         <ProfileTabs
@@ -170,12 +151,36 @@ export default function ProfilePage() {
           setActiveTab={setActiveTab}
           isOwner={true}
           showSavedPublicly={profile.showSavedPublicly}
+          showRecruiter={false}
         />
 
-        <div className="mt-8 pt-8 border-t border-transparent">{content}</div>
+        <div className="mt-8 pt-8 border-t border-transparent">
+          {/* ✅ center each card AND the grid block */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
+            {pageItems.length ? (
+              pageItems.map((project, i) => (
+                <ProjectCard key={project.id || `${project.title}-${i}`} project={project} />
+              ))
+            ) : (
+              <p className="col-span-full text-center text-gray-400">
+                {activeTab === "Saved" ? "No saved projects yet." : "No projects yet."}
+              </p>
+            )}
+          </div>
+
+          {/* ✅ use the correct props for your Pagination component */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex justify-center">
+              <Pagination
+                totalPages={totalPages}
+                currentPage={safePage}
+                onChange={setPage}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Share Modal */}
       <ShareModal
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}

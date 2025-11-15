@@ -13,9 +13,10 @@ export default function ProjectCard({ project }) {
 
   // Click handler (navigate to project details later)
   const handleClick = () => {
-    // Placeholder — we’ll wire this up later
-    console.log("Clicked:", project.title);
-    // Example: navigate(`/project/${project.id}`)
+    // Navigate to detail and pass the project as state for quick render
+    if (project?.id) {
+      navigate(`/project/${project.id}`, { state: { project } });
+    }
   };
 
   return (
@@ -25,8 +26,8 @@ export default function ProjectCard({ project }) {
         relative
         group
         cursor-pointer
-        w-full
-        max-w-[360px]
+        w-[292px]
+        h-[273px]
         rounded-[20px]
         border
         border-gray-200
@@ -60,24 +61,36 @@ export default function ProjectCard({ project }) {
       <div className="flex flex-col justify-between flex-grow px-5 pt-4 pb-3">
         {/* Text */}
         <div>
-          <h3 className="text-[1.2rem] sm:text-[1.25rem] font-An font-semibold text-black truncate">
+          <h3 className="text-[1.1rem] sm:text-[1.2rem] font-An font-semibold text-black truncate">
             {project.title || "Project title"}
           </h3>
-          <p className="text-[0.9rem] font-IBM text-black truncate">
+          <p className="text-[0.875rem] font-IBM text-black truncate">
             {project.contributor || "Project Contributor"}
           </p>
         </div>
 
         {/* Tags (bottom left) */}
         <div className="flex flex-wrap gap-2 mt-3">
-          {project.tags?.map((tag, i) => (
-            <span
-              key={i}
-              className={`px-3 h-[26px] rounded-[20px] flex items-center justify-center text-[0.9rem] sm:text-[1.rem] font-IBM ${tagColors[tag] || "bg-gray-100 text-black"}`}
-            >
-              {tag}
-            </span>
-          ))}
+          {(() => {
+            const tags = project.tags || [];
+            const visible = tags.slice(0, 3);
+            const extra = Math.max(0, tags.length - 3);
+            return (
+              <>
+                {visible.map((tag, i) => (
+                  <span
+                    key={i}
+                    className={`px-3 h-[26px] rounded-[20px] flex items-center justify-center text-[0.875rem] font-IBM ${tagColors[tag] || "bg-gray-100 text-black"}`}
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {extra > 0 && (
+                  <span className="px-3 h-[26px] rounded-[20px] flex items-center justify-center text-[0.875rem] font-IBM bg-gray-100 text-black">+{extra}</span>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>

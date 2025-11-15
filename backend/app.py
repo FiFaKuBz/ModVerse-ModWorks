@@ -1,39 +1,43 @@
 from flask import Flask, send_from_directory
 from flask_pymongo import PyMongo
-from config import Config
-from models.user import UserModel
-from auth.google import GoogleOAuth
-from routes.auth_routes import auth_bp, init_auth_routes
-from routes.users_routes import user_bp, init_user_routes
-from routes.search_routes import search_bp  # NEW
+from flask_mail import Mail
 from flask_cors import CORS
 import os
+from .config import Config
+from .models.user import UserModel
+from .models.project import ProjectModel
+from .auth.google import GoogleOAuth
+from .auth.otp_service import OTPService
+from .routes.auth_routes import auth_bp, init_auth_routes
+from .routes.users_routes import user_bp, init_user_routes
+from .routes.project_routes import project_bp, init_project_routes
+from .routes.search_routes import search_bp  # NEW
 
 app = Flask(__name__, static_folder='../frontend/dist')
-CORS(app) 
+
+# CORS Configuration (สำคัญสำหรับ API!)
+CORS(app, 
+     supports_credentials=True,  # อนุญาตให้ส่ง cookies
+     origins=["http://localhost:3000", "http://localhost:5000"],  # frontend origins
+     allow_headers=["Content-Type", "Authorization", "Cookie"],
+     expose_headers=["Set-Cookie"])
+
 app.config.from_object(Config)
 
-# ตรวจสอบ MONGO_URI ก่อนเชื่อมต่อ
-if not app.config.get('MONGO_URI'):
-    print("\n" + "="*60)
-    print("❌ ERROR: MONGO_URI is not configured!")
-    print("="*60)
-    print("\nกรุณาสร้างไฟล์ .env ในโฟลเดอร์ backend ด้วยเนื้อหา:")
-    print("\nMONGO_URI=mongodb://localhost:27017/cpe334_test")
-    print("SECRET_KEY=dev-secret-key")
-    print("\nหลังจากนั้นรันแอปใหม่: python app.py")
-    print("="*60 + "\n")
-    raise RuntimeError("MONGO_URI environment variable not set")
-
-# เชื่อมต่อ MongoDB
-print(f"🔄 Connecting to MongoDB: {app.config.get('MONGO_URI')}")
+# เชื่อมต่อ MongoDB และ Mail
 mongo = PyMongo(app)
-print("✅ MongoDB connected successfully!")
+mail = Mail(app)
 
 # สร้าง model และ service objects
 with app.app_context():
     user_model = UserModel(mongo.db)
+    project_model = ProjectModel(mongo.db)
     
+    # สร้าง indexes สำหรับ projects
+    project_model.ensure_indexes()
+    
+    otp_service = OTPService(mail, mongo.db)
+
     google_oauth = GoogleOAuth(
         client_id=Config.GOOGLE_CLIENT_ID,
         client_secret=Config.GOOGLE_CLIENT_SECRET,
@@ -43,13 +47,15 @@ with app.app_context():
     )
 
 # เตรียมค่าสำหรับ routes
-init_auth_routes(google_oauth, user_model)
+init_auth_routes(google_oauth, user_model, otp_service)
 init_user_routes(user_model)
+init_project_routes(project_model)
 
 # ลงทะเบียน blueprints
-app.register_blueprint(auth_bp)
-app.register_blueprint(user_bp)
-app.register_blueprint(search_bp)  # NEW
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(user_bp, url_prefix='/api/users')
+app.register_blueprint(project_bp, url_prefix='/api/project')
+app.register_blueprint(search_bp, url_prefix='/api/search')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -61,5 +67,5 @@ def serve(path):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
     # app.run(debug=True, use_reloader=False)
