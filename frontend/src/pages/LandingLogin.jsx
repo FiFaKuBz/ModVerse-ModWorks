@@ -2,7 +2,7 @@
 import React, { useState,useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
-import TwoFactorMock from "../auth/TwoFactorMock";
+import TwoFactor from "../auth/TwoFactor";
 import { useSession } from "../session/SessionContext";
 
 export default function LandingLogin() {
@@ -38,7 +38,7 @@ export default function LandingLogin() {
 
   if (step === "2fa") {
     return (
-      <TwoFactorMock
+      <TwoFactor
         onSuccess={handle2FASuccess}
         onBack={() => setStep("login")}
         onMaxFail={handleMaxFail}
