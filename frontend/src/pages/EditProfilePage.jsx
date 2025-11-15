@@ -1,56 +1,85 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import CustomButton from "../components/common/CustomButton";
 import { useNavigate } from "react-router-dom";
+import { getProfile, updateProfile } from "../api/profile";
+
+const FALLBACK_PROFILE = {
+  avatar: "",
+  username: "Username",
+  email: "Email@gmail.com",
+  about: "description",
+  showSavedPublicly: true,
+};
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Mock current user data
-  const [profile, setProfile] = useState({
-    avatar: "",
-    username: "Username",
-    email: "Email@gmail.com",
-    about: "description",
-    showSavedPublicly: true,
-  });
+  useEffect(() => {
+    let canceled = false;
+    const hydrate = async () => {
+      try {
+        const data = await getProfile();
+        if (!canceled) {
+          setProfile(data || FALLBACK_PROFILE);
+        }
+      } catch {
+        if (!canceled) setProfile(FALLBACK_PROFILE);
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    };
+    hydrate();
+    return () => {
+      canceled = true;
+    };
+  }, []);
 
-  // Handle field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Toggle visibility
   const toggleVisibility = () => {
-    setProfile((prev) => ({
-      ...prev,
-      showSavedPublicly: !prev.showSavedPublicly,
-    }));
+    setProfile((prev) => ({ ...prev, showSavedPublicly: !prev.showSavedPublicly }));
   };
 
-  // Handle avatar upload + preview
   const handleAvatarUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setProfile((prev) => ({ ...prev, avatar: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfile((prev) => ({ ...prev, avatar: reader.result || "" }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    if (!profile || saving) return;
+    setSaving(true);
+    try {
+      const updated = await updateProfile(profile);
+      setProfile(updated);
+      navigate(-1);
+    } catch {
+      alert("ไม่สามารถบันทึกโปรไฟล์ได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Save profile & go back
-  const handleSave = () => {
-    console.log("✅ Saved profile:", profile);
-    // 🔸 Future: call backend API here
-    navigate(-1); // Go back to previous page
-  };
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
+        กำลังโหลดโปรไฟล์...
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-white text-gray-900 font-['Anuphan'] flex flex-col items-center">
-      {/* Top Controls */}
       <button
         onClick={() => navigate(-1)}
         className="absolute top-6 left-6 text-black hover:opacity-70 transition"
@@ -60,14 +89,15 @@ export default function EditProfilePage() {
 
       <button
         onClick={handleSave}
-        className="absolute top-6 right-6 bg-[#D35400] text-white font-semibold px-6 py-2 rounded-xl hover:opacity-90 transition"
+        disabled={saving}
+        className={`absolute top-6 right-6 bg-[#D35400] text-white font-semibold px-6 py-2 rounded-xl transition ${
+          saving ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
+        }`}
       >
-        Done
+        {saving ? "Saving..." : "Done"}
       </button>
 
-      {/* Content Section */}
       <div className="w-full max-w-[800px] px-[clamp(1rem,4vw,3rem)] mt-16">
-        {/* Avatar Section */}
         <div className="flex flex-col items-center mb-10">
           <div className="w-[100px] h-[100px] rounded-full bg-mGrey overflow-hidden flex items-center justify-center">
             {profile.avatar ? (
@@ -81,7 +111,6 @@ export default function EditProfilePage() {
             )}
           </div>
 
-          {/* Hidden file input */}
           <input
             id="avatarInput"
             type="file"
@@ -90,7 +119,6 @@ export default function EditProfilePage() {
             className="hidden"
           />
 
-          {/* Upload Button */}
           <label
             htmlFor="avatarInput"
             className="cursor-pointer mt-4 px-6 py-2 bg-[#D35400] text-white rounded-xl font-medium hover:opacity-90 transition"
@@ -99,9 +127,7 @@ export default function EditProfilePage() {
           </label>
         </div>
 
-        {/* Form Fields */}
         <form className="flex flex-col gap-8">
-          {/* Username */}
           <div>
             <label className="block text-lg font-semibold mb-1">Username</label>
             <input
@@ -114,7 +140,6 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-lg font-semibold mb-1">Email</label>
             <input
@@ -127,7 +152,6 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* About */}
           <div>
             <label className="block text-lg font-semibold mb-1">About</label>
             <textarea
@@ -140,18 +164,15 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Show All Projects */}
           <div className="flex items-center justify-between mt-2">
             <div>
               <h3 className="font-semibold text-lg">Show All Projects</h3>
               <p className="text-gray-700 text-sm mt-1 leading-snug">
-                People visiting your profile will be able to see all the projects
-                you saved. <br />
+                People visiting your profile will be able to see all the projects you saved. <br />
                 Projects saved to a secret board won’t be visible.
               </p>
             </div>
 
-            {/* Toggle */}
             <button
               type="button"
               onClick={toggleVisibility}

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
-
-const STORAGE_KEY = "mv_user_projects";
+import { getProject, updateProject } from "../api/projects";
 
 const slugify = (value = "") =>
   value
@@ -22,11 +21,11 @@ const CATEGORY_OPTIONS = [
 
 const CATEGORY_COLORS = {
   "UX/UI": "bg-mPurple text-black",
-  Transportation: "bg-mBlue text-black",
-  Database: "bg-mYellow text-black",
-  Algorithm: "bg-mGreen text-black",
+  "Transportation": "bg-mBlue text-black",
+  "Database": "bg-mYellow text-black",
+  "Algorithm": "bg-mGreen text-black",
   "Digital Circuit": "bg-mPink text-black",
-  "Data Visualization": "bg-amber-200 text-black",
+  "Data Visualization": "bg-mSalmon text-black",
 };
 
 const fileToDataUrl = (file) =>
@@ -36,21 +35,6 @@ const fileToDataUrl = (file) =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-
-// TODO(integration): replace all localStorage helpers with API calls to backend project service.
-const loadUserProjects = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveUserProjects = (list) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list || []));
-};
 
 const normalizeCoauthors = (list = []) =>
   (list || [])
@@ -183,49 +167,74 @@ export default function EditProjectPage() {
   const [coauthorName, setCoauthorName] = useState("");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fieldCls =
     "mv-field w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-orange-400";
   const areaCls = fieldCls + " resize-none";
 
   useEffect(() => {
-    const list = loadUserProjects();
-    const project = list.find((p) => p.id === id);
-    if (!project) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
+    let canceled = false;
 
-    const detail = project.detail || {};
-    const imagesBySection = detail.imagesBySection || {};
+    const hydrateProject = (project) => {
+      const detail = project.detail || {};
+      const imagesBySection = detail.imagesBySection || {};
 
-    setForm({
-      title: project.title || "",
-      topic: detail.summary || "",
-      startPoint: detail.startPoint || "",
-      goal: detail.goal || "",
-      process: detail.process || "",
-      result: detail.result || "",
-      takeaway: detail.takeaway || "",
-      nextStep: detail.nextStep || "",
-      categories: project.tags || [],
-      isPublic: project.public ?? true,
-      allowComments: project.comments ?? false,
-      coauthors: normalizeCoauthors(project.coauthors),
-    });
+      setForm({
+        title: project.title || "",
+        topic: detail.summary || "",
+        startPoint: detail.startPoint || "",
+        goal: detail.goal || "",
+        process: detail.process || "",
+        result: detail.result || "",
+        takeaway: detail.takeaway || "",
+        nextStep: detail.nextStep || "",
+        categories: project.tags || [],
+        isPublic: project.public ?? true,
+        allowComments: project.comments ?? false,
+        coauthors: normalizeCoauthors(project.coauthors),
+      });
 
-    setImages({
-      cover: project.image ? [project.image] : [],
-      startPoint: imagesBySection.startPoint || [],
-      goal: imagesBySection.goal || [],
-      process: imagesBySection.process || [],
-      result: imagesBySection.result || [],
-      takeaway: imagesBySection.takeaway || [],
-      nextStep: imagesBySection.nextStep || [],
-    });
+      setImages({
+        cover: project.image ? [project.image] : [],
+        startPoint: imagesBySection.startPoint || [],
+        goal: imagesBySection.goal || [],
+        process: imagesBySection.process || [],
+        result: imagesBySection.result || [],
+        takeaway: imagesBySection.takeaway || [],
+        nextStep: imagesBySection.nextStep || [],
+      });
+    };
 
-    setLoading(false);
+    const fetchProject = async () => {
+      if (!id) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setNotFound(false);
+      try {
+        // Integration note: `getProject` consolidates API/local fallback; update helper only if backend contract changes.
+        const project = await getProject(id);
+        if (canceled) return;
+        if (!project) {
+          setNotFound(true);
+          return;
+        }
+        hydrateProject(project);
+      } catch {
+        if (!canceled) setNotFound(true);
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    };
+
+    fetchProject();
+
+    return () => {
+      canceled = true;
+    };
   }, [id]);
 
   const handleChange = (e) => {
@@ -266,18 +275,12 @@ export default function EditProjectPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const list = loadUserProjects();
-    const index = list.findIndex((p) => p.id === id);
-    if (index === -1) {
-      alert("ไม่พบโปรเจกต์นี้ในระบบ");
-      return;
-    }
+    if (!id || isSavingDisabled) return;
 
-    const project = list[index];
-    const updated = {
-      ...project,
+    setIsSaving(true);
+    const payload = {
       title: form.title.trim() || "Untitled",
       tags: form.categories,
       image: images.cover[0] || "",
@@ -303,12 +306,22 @@ export default function EditProjectPage() {
       },
     };
 
-    list[index] = updated;
-    saveUserProjects(list);
-    navigate(`/project/${id}`, { replace: true, state: { project: updated } });
+    try {
+      // Integration note: `updateProject` is the single outbound call for edits; extend payload here if backend expects more fields.
+      const updated = await updateProject(id, payload);
+      if (!updated) {
+        alert("ไม่พบโปรเจกต์นี้");
+        return;
+      }
+      navigate(`/project/${updated.id || id}`, { replace: true, state: { project: updated } });
+    } catch {
+      alert("ไม่สามารถบันทึกโปรเจกต์ได้ ลองอีกครั้ง");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const isSavingDisabled = loading || notFound;
+  const isSavingDisabled = loading || notFound || isSaving;
 
   if (loading) {
     return (

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
+import { createProject } from "../api/projects";
 
 const slugify = (value = "") =>
   value
@@ -27,8 +28,6 @@ const CATEGORY_COLORS = {
   "Data Visualization": "bg-amber-200 text-black",
 };
 
-const STORAGE_KEY = "mv_user_projects";
-
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -36,20 +35,6 @@ const fileToDataUrl = (file) =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-
-const loadUserProjects = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveUserProjects = (list) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list || []));
-};
 
 /* ---------- small reusable picker (embedded) ---------- */
 function ImagePicker({ label = "+ เพิ่มรูปภาพ", value = [], onChange, max = 6 }) {
@@ -188,17 +173,16 @@ export default function CreatePage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const projectId = `u-${Date.now()}`;
-    const project = {
-      id: projectId,
+    const now = Date.now();
+    const payload = {
       title: form.title.trim() || "Untitled",
       contributor: "You",
       tags: form.categories,
       image: images.cover[0] || "",
-      createdAt: Date.now(),
+      createdAt: now,
       metrics7d: { likes: 0, saves: 0, comments: 0 },
       public: !!form.isPublic,
       comments: !!form.allowComments,
@@ -222,11 +206,9 @@ export default function CreatePage() {
       },
     };
 
-    const existing = loadUserProjects();
-    existing.unshift(project);
-    saveUserProjects(existing);
-
-    navigate(`/project/${projectId}`, { state: { project } });
+    // Integration note: `createProject` is the single point to swap once the backend POST changes.
+    const saved = await createProject(payload);
+    navigate(`/project/${saved.id}`, { state: { project: saved } });
   };
 
   const fieldCls =

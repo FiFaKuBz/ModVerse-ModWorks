@@ -3,7 +3,7 @@ import React, { useState,useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import TwoFactorMock from "../auth/TwoFactorMock";
-import { useSession } from "../session/SessionProvider";
+import { useSession } from "../session/SessionContext";
 
 export default function LandingLogin() {
   const [step, setStep] = useState("login");  // 'login' | '2fa'
@@ -24,16 +24,6 @@ export default function LandingLogin() {
     location.state && location.state.reason === "expired"
       ? "Your session expired. Please sign in again."
       : null;
-
-  const handleGoogleLogin = () => {
-    setBanner(null);
-    const enabled = localStorage.getItem("mv_2fa_enabled") !== "0"; // default enabled
-    if (enabled) {
-      setStep("2fa");
-    } else {
-      handle2FASuccess();
-    }
-  };
 
   const handle2FASuccess = () => {
     login();
@@ -87,7 +77,7 @@ export default function LandingLogin() {
               type="button"
 
               onClick={() => {
-                // redirects browser to backend which starts Google OAuth
+                // Integration note: backend OAuth entrypoint lives at /api/auth/login; update path if auth routes change.
                 window.location.href = "/api/auth/login";
               }}
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-md border border-neutral-300 px-20 py-3 text-sm font-anuphan font-semibold text-neutral-800 hover:bg-neutral-50 active:scale-[.99] transition"

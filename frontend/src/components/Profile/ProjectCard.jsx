@@ -6,6 +6,7 @@ const tagColors = {
   "Database": "bg-mYellow text-black",
   "Algorithm": "bg-mGreen text-black",
   "Digital Circuit": "bg-mPink text-black",
+  "Data Visualization": "bg-mSalmon text-black",
 };
 
 export default function ProjectCard({ project }) {

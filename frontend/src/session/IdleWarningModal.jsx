@@ -1,4 +1,4 @@
-import { useSession } from "./SessionProvider";
+import { useSession } from "./SessionContext";
 
 export function IdleWarningModal() {
   const { warn, setWarn, bump, logout } = useSession();

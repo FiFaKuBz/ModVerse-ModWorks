@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useSession } from "./SessionProvider";
+import { useSession } from "./SessionContext";
 
 export default function ProtectedRoute({ children }) {
   const { expiresAt } = useSession();
