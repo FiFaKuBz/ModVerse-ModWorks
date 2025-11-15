@@ -34,22 +34,31 @@ def callback():
     → ส่ง OTP
     → รอ user ยืนยัน
     """
+    print("DEBUG: 1. Start callback function") # 👈 Added
     # ตรวจสอบ state
     if request.args.get("state") != session.get("oauth_state"):
+        print("DEBUG: ❌ State Mismatch") # 👈 Added
         return "Invalid state", 400
     
     code = request.args.get("code")
     if not code:
+        print("DEBUG: ❌ Missing code") # 👈 Added
         return "Missing code", 400
     
     # แลก code เป็น token
     try:
+        print("DEBUG: 2. Attempting token exchange with code:", code[:10] + "...") # 👈 Added
         token_data = google_oauth.exchange_code_for_token(code)
+        print("DEBUG: 3. Token exchange SUCCESS") # 👈 Added
     except Exception as e:
+        # 🚨 จุดนี้มักเกิด 502 ถ้าโค้ดของคุณไม่สามารถจัดการ Exception ได้
+        print(f"DEBUG: ❌ Token exchange FAILED with error: {e}") # 👈 Added
+        import traceback; traceback.print_exc() # 👈 แสดง Stack Trace ใน Console
         return str(e), 400
     
     id_token_str = token_data.get("id_token")
     if not id_token_str:
+        print(f"DEBUG: ❌ Missing id_token: {token_data}") # 👈 Added
         return f"Token exchange failed: {token_data}", 400
     
     # ตรวจสอบ ID token
@@ -57,19 +66,25 @@ def callback():
     
     # ตรวจสอบ nonce
     if google_info.get("nonce") != session.get("oauth_nonce"):
+        print("DEBUG: ❌ Nonce Mismatch") # 👈 Added
         return "Invalid nonce", 400
     
-    # บันทึกข้อมูล Google ใน session ชั่วคราว (ยังไม่ให้เข้าระบบ)
+    # บันทึกข้อมูล Google ใน session ชั่วคราว
     session["pending_google_info"] = google_info
 
     # 📧 ส่ง OTP ไปอีเมล
     email = google_info.get("email")
     name = google_info.get("name", "User")
-
+    
+    print(f"DEBUG: 4. Attempting to send OTP to {email}") # 👈 Added
     result = otp_service.send_otp(email, name)
 
     if not result["success"]:
+        # 🚨 จุดนี้มักเกิด 502 ถ้า Mail Server ล่ม
+        print(f"DEBUG: ❌ Failed to send OTP: {result.get('message')}") # 👈 Added
         return jsonify({"error": "Failed to send OTP"}), 500
+    
+    print("DEBUG: 5. OTP sent successfully. Returning 2FA response.") # 👈 Added
     
     # เคลียร์ค่า one-time OAuth
     session.pop("oauth_state", None)
