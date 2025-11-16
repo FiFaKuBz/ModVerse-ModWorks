@@ -85,7 +85,7 @@ export default function ShowcasePage() {
   const ALL_TOPICS = useMemo(() => {
     const s = new Set();
     projects.forEach((p) => p.tags?.forEach((t) => s.add(t)));
-    ["UX/UI", "Transportation", "Database", "Algorithm", "Digital Circuit", "Data Visualization"].forEach(
+    [].forEach(
       (t) => s.add(t)
     );
     return Array.from(s).sort();
@@ -98,13 +98,12 @@ export default function ShowcasePage() {
       try {
         // Integration note: `listProjects` is the single entry point for showcase data; update helper if backend schema or endpoint changes.
         const remote = await listProjects();
-        console.log(remote)
         if (canceled) return;
         const arr = Array.isArray(remote) ? remote : [];
         // setProjects(mergeProjects(arr, MOCK));
         setProjects(arr);
       } catch {
-        if (!canceled) setProjects([]);;
+        if (!canceled) setProjects([]);
       } finally {
         if (!canceled) setIsLoading(false);
       }

@@ -36,7 +36,11 @@ export async function listProjects() {
     try {
         const remote = await request("/public", { method: "GET" });
         if (remote && remote.success && Array.isArray(remote.projects)) {
-            return ensureArray(remote.projects);
+            const projectsWithId = remote.projects.map(p => ({
+                ...p,
+                id: p._id || p.id // ใช้ _id หากมี, ไม่งั้นใช้ id เดิม (สำหรับ fallback)
+            }));
+            return ensureArray(projectsWithId);
         }
         throw new Error("Invalid response format from public projects API.");
     } catch {
