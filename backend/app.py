@@ -20,7 +20,7 @@ PRODUCTION_ORIGINS = "http://localhost:3000"
 # CORS Configuration (สำคัญสำหรับ API!)
 CORS(app, 
      supports_credentials=True,  # อนุญาตให้ส่ง cookies
-     origins=[LOCAL_ORIGINS, "http://localhost:5000"],  # frontend origins
+     origins=[PRODUCTION_ORIGINS, "http://localhost:5000"],  # frontend origins
      allow_headers=["Content-Type", "Authorization", "Cookie"],
      expose_headers=["Set-Cookie"])
 
