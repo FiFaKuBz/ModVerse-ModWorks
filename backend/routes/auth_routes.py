@@ -15,6 +15,31 @@ def init_auth_routes(oauth, model,otp):
     user_model = model
     otp_service = otp
 
+# ✅ NEW: BYPASS LOGIN ROUTE FOR LOCAL TESTING
+@auth_bp.route("/bypass-login", methods=["POST"]) 
+def bypass_login():
+    """Bypass Google OAuth for local development/testing"""
+    
+    # 📌 ใช้ ID ที่เป็นไปตาม MongoDB ObjectId format (24 ตัว)
+    MOCK_USER_ID = "660705010000000000000000" 
+    MOCK_USER_NAME = "Test User (Bypass)"
+    MOCK_USER_EMAIL = "test@bypass.com"
+    
+    session.clear() # เคลียร์ Session เก่าก่อน
+    session["user"] = {
+        "id": MOCK_USER_ID,
+        "name": MOCK_USER_NAME,
+        "email": MOCK_USER_EMAIL,
+        "picture": "MOCK_URL",
+        "role": "user",
+    }
+    session.permanent = True # ทำให้ Session อยู่ได้นาน
+    
+    print(f"✅ DEBUG: Bypass Login Success. Session created for {MOCK_USER_NAME}")
+    
+    return jsonify({"ok": True, "message": "Bypass login successful"}), 200
+
+
 @auth_bp.route("/login")
 def login():
     """เริ่มต้น Google OAuth flow"""
