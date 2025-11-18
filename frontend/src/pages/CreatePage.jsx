@@ -12,12 +12,12 @@ const slugify = (value = "") =>
     .replace(/\s+/g, "-");
 
 const CATEGORY_OPTIONS = [
-  "UX/UI",
-  "Transportation",
-  "Database",
-  "Algorithm",
-  "Digital Circuit",
-  "Data Visualization",
+  // "UX/UI",
+  // "Transportation",
+  // "Database",
+  // "Algorithm",
+  // "Digital Circuit",
+  // "Data Visualization",
 ];
 
 const fileToDataUrl = (file) =>

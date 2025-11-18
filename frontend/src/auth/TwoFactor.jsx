@@ -1,22 +1,42 @@
 // src/auth/TwoFactorMock.jsx (Updated to connect to API)
 import { useEffect, useRef, useState } from "react";
 
-// Helper function สำหรับเรียก API โดยเฉพาะสำหรับ Auth
-const authRequest = async (endpoint, options = {}) => {
-  const res = await fetch(`/api/auth${endpoint}`, {
-    headers: { "Content-Type": "application/json" },
-    credentials: "include", // สำคัญ: ใช้สำหรับส่ง Session Cookie
-    ...options,
-  });
+const STATIC_OTP = "000000";
 
-  // Backend response for error is {"ok": false, "error": "message"}
-  const data = await res.json(); 
 
-  if (!res.ok || data.ok === false) {
-    throw new Error(data.error || "Verification failed");
-  }
-  return data;
+// Helper function to simulate a mock API request with latency (800ms)
+// This completely replaces the need for the original fetch-based authRequest.
+const mockRequest = (successData, failureMessage, isSuccess = true) => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (isSuccess) {
+                // Simulate a successful API response structure
+                resolve({ ok: true, ...successData });
+            } else {
+                // Simulate an API error response structure
+                reject(new Error(failureMessage));
+            }
+        }, 100); // Simulate 800ms network latency
+    });
 };
+
+
+// // Helper function สำหรับเรียก API โดยเฉพาะสำหรับ Auth
+// const authRequest = async (endpoint, options = {}) => {
+//   const res = await fetch(`/api/auth${endpoint}`, {
+//     headers: { "Content-Type": "application/json" },
+//     credentials: "include", // สำคัญ: ใช้สำหรับส่ง Session Cookie
+//     ...options,
+//   });
+
+//   // Backend response for error is {"ok": false, "error": "message"}
+//   const data = await res.json(); 
+
+//   if (!res.ok || data.ok === false) {
+//     throw new Error(data.error || "Verification failed");
+//   }
+//   return data;
+// };
 
 export default function TwoFactorAuth({
   onSuccess,
@@ -34,18 +54,44 @@ export default function TwoFactorAuth({
     inputRef.current?.focus();
   }, []);
 
-  // API Call: Verify OTP
-  const verifyOtpApi = (code) =>
-    authRequest("/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({ code }),
-    });
 
-  // API Call: Resend OTP
-  const resendOtpApi = () => 
-    authRequest("/resend-otp", {
-      method: "POST",
-    });
+  	// Mock API Call: Verify OTP
+	const verifyOtpApi = (inputCode) => {
+		// Check against the static success code
+		if (inputCode === STATIC_OTP) {
+			console.log("Mock Success: STATIC_OTP matched.");
+			return mockRequest({ message: "Verification successful" });
+		}
+
+		// Simulate failure for any other code
+		console.log("Mock Failure: Invalid code.");
+		return mockRequest(
+			null,
+			"Invalid or expired OTP",
+			false
+		);
+	};
+
+	// Mock API Call: Resend OTP
+	const resendOtpApi = () => {
+		// Resending always succeeds in the mock environment
+		console.log("Mock Resend: New code sent (static code 000000).");
+		return mockRequest({ message: "New OTP generated and sent" });
+	};
+	// ------------------------------------------
+
+  // // API Call: Verify OTP
+  // const verifyOtpApi = (code) =>
+  //   authRequest("/verify-otp", {
+  //     method: "POST",
+  //     body: JSON.stringify({ code }),
+  //   });
+
+  // // API Call: Resend OTP
+  // const resendOtpApi = () => 
+  //   authRequest("/resend-otp", {
+  //     method: "POST",
+  //   });
 
   const submit = async (e) => {
     e?.preventDefault?.();
