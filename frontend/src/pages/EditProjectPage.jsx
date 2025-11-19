@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import { getProject, updateProject } from "../api/projects";
+import { getProfileBySlug } from "../api/profile";
 import { getTopicChipClass } from "../constants/topicColors";
 
 const slugify = (value = "") =>
@@ -20,13 +21,23 @@ const CATEGORY_OPTIONS = [
   "Data Visualization",
 ];
 
-const fileToDataUrl = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+const SECTION_LABELS = {
+  startPoint: "จุดเริ่มต้น",
+  goal: "เป้าหมาย",
+  process: "กระบวนการ",
+  result: "ผลลัพธ์",
+  takeaway: "สิ่งที่ได้จากโปรเจกต์",
+  nextStep: "สิ่งที่อยากทำต่อ",
+};
+
+const SECTION_PLACEHOLDERS = {
+  startPoint: "ทำไมถึงเริ่มทำโปรเจกต์นี้? เล่าที่มาแบบสั้น ๆ เช่น ปัญหาที่เจอ, หรือโจทย์ที่ได้รับ",
+  goal: "อยากแก้ปัญหาอะไร หรืออยากสร้างอะไรขึ้นมา? สรุปเป้าหมายสั้น ๆ",
+  process: "ใช้วิธีไหนหรือเครื่องมืออะไรบ้าง?",
+  result: "ได้อะไรออกมาจริง? บอกสิ่งที่เสร็จแล้ว หรือสิ่งที่ผู้ใช้ได้เห็น/ใช้",
+  takeaway: "เรียนรู้อะไรจากโปรเจกต์นี้?",
+  nextStep: "จะพัฒนาอะไรต่อ อยากต่อยอดอย่างไร หรืออยากได้ความช่วยเหลือด้านใด?",
+};
 
 const normalizeCoauthors = (list = []) =>
   (list || [])
@@ -43,123 +54,66 @@ const normalizeCoauthors = (list = []) =>
     })
     .filter(Boolean);
 
-function ImagePicker({ label = "+ เพิ่มรูปภาพ", value = [], onChange, max = 6 }) {
-  const handleFiles = async (files) => {
-    const arr = Array.from(files || []);
-    if (!arr.length) return;
-    const dataUrls = await Promise.all(arr.map(fileToDataUrl));
-    const next = [...value, ...dataUrls].slice(0, max);
-    onChange(next);
-  };
-
+function ImagePicker({ label = "+ เพิ่มรูปปก", value = [], onChange }) {
   const handleInputChange = async (event) => {
     const { files } = event.target;
     if (!files?.length) return;
-    try {
-      await handleFiles(files);
-    } finally {
-      event.target.value = "";
-    }
-  };
-
-  const removeAt = (idx) => {
-    const next = value.slice();
-    next.splice(idx, 1);
-    onChange(next);
+    const reader = new FileReader();
+    reader.onload = () => onChange([reader.result || ""]);
+    reader.onerror = () => onChange([]);
+    reader.readAsDataURL(files[0]);
+    event.target.value = "";
   };
 
   return (
     <div className="mt-2">
       <label className="mv-btn inline-flex items-center gap-2 text-sm text-[#D35400] font-semibold cursor-pointer">
-        <input
-          type="file"
-          accept="image/*"
-          multiple={max !== 1}
-          className="sr-only"
-          onChange={handleInputChange}
-        />
+        <input type="file" accept="image/*" className="sr-only" onChange={handleInputChange} />
         {label}
       </label>
-
       {value.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-3">
-          {value.map((src, i) => (
-            <div
-              key={`${i}-${src.slice(0, 12)}`}
-              className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-300"
-              title={`image-${i + 1}`}
+          <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-300">
+            <img src={value[0]} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="absolute top-1 right-1 rounded-md bg-black/60 text-white text-xs px-1.5 py-0.5 hover:bg-black"
             >
-              <img src={src} alt="" className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => removeAt(i)}
-                className="absolute top-1 right-1 rounded-md bg-black/60 text-white text-xs px-1.5 py-0.5 hover:bg-black"
-                aria-label="Remove image"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+              ✕
+            </button>
+          </div>
         </div>
       )}
-      <p className="mt-1 text-xs text-gray-500">รองรับภาพสูงสุด {max} รูป (JPG/PNG/GIF)</p>
     </div>
   );
 }
-
-const SECTION_LABELS = {
-  startPoint: "จุดเริ่มต้น",
-  goal: "เป้าหมาย",
-  process: "กระบวนการ",
-  result: "ผลลัพธ์",
-  takeaway: "สิ่งที่ได้จากโปรเจกต์นี้",
-  nextStep: "สิ่งที่จะทำต่อ",
-};
-
-const SECTION_PLACEHOLDERS = {
-  startPoint: "ทำไมถึงเริ่มทำโปรเจกต์นี้? เล่าที่มาแบบสั้น ๆ เช่น ปัญหาที่เจอ, หรือโจทย์ที่ได้รับ",
-  goal: "อยากแก้ปัญหาอะไร หรืออยากสร้างอะไรขึ้นมา? สรุปเป้าหมายสั้น ๆ",
-  process: "ใช้วิธีไหนหรือเครื่องมืออะไรบ้าง?",
-  result: "ได้อะไรออกมาจริง? บอกสิ่งที่เสร็จแล้ว หรือสิ่งที่ผู้ใช้ได้เห็น/ใช้",
-  takeaway: "เรียนรู้อะไรจากโปรเจกต์นี้?",
-  nextStep: "จะพัฒนาอะไรต่อ อยากต่อยอดอย่างไร หรืออยากได้ความช่วยเหลือด้านใด?",
-};
-
-const initialForm = {
-  title: "",
-  topic: "",
-  startPoint: "",
-  goal: "",
-  process: "",
-  result: "",
-  takeaway: "",
-  nextStep: "",
-  categories: [],
-  isPublic: true,
-  allowComments: false,
-  coauthors: [],
-};
-
-const initialImages = {
-  cover: [],
-  startPoint: [],
-  goal: [],
-  process: [],
-  result: [],
-  takeaway: [],
-  nextStep: [],
-};
 
 export default function EditProjectPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState(initialForm);
-  const [images, setImages] = useState(initialImages);
+  const [form, setForm] = useState({
+    title: "",
+    topic: "",
+    startPoint: "",
+    goal: "",
+    process: "",
+    result: "",
+    takeaway: "",
+    nextStep: "",
+    categories: [],
+    isPublic: true,
+    allowComments: false,
+    coauthors: [],
+  });
+  const [coverImage, setCoverImage] = useState([]);
+  const [persistedImages, setPersistedImages] = useState({});
   const [coauthorName, setCoauthorName] = useState("");
+  const [coauthorError, setCoauthorError] = useState("");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const fieldCls =
     "mv-field w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-orange-400";
@@ -167,63 +121,40 @@ export default function EditProjectPage() {
 
   useEffect(() => {
     let canceled = false;
-
-    const hydrateProject = (project) => {
-      const detail = project.detail || {};
-      const imagesBySection = detail.imagesBySection || {};
-
-      setForm({
-        title: project.title || "",
-        topic: detail.summary || "",
-        startPoint: detail.startPoint || "",
-        goal: detail.goal || "",
-        process: detail.process || "",
-        result: detail.result || "",
-        takeaway: detail.takeaway || "",
-        nextStep: detail.nextStep || "",
-        categories: project.tags || [],
-        isPublic: project.public ?? true,
-        allowComments: project.comments ?? false,
-        coauthors: normalizeCoauthors(project.coauthors),
-      });
-
-      setImages({
-        cover: project.image ? [project.image] : [],
-        startPoint: imagesBySection.startPoint || [],
-        goal: imagesBySection.goal || [],
-        process: imagesBySection.process || [],
-        result: imagesBySection.result || [],
-        takeaway: imagesBySection.takeaway || [],
-        nextStep: imagesBySection.nextStep || [],
-      });
-    };
-
-    const fetchProject = async () => {
-      if (!id) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
+    const hydrate = async () => {
       setLoading(true);
-      setNotFound(false);
       try {
-        // Integration note: `getProject` consolidates API/local fallback; update helper only if backend contract changes.
         const project = await getProject(id);
         if (canceled) return;
         if (!project) {
           setNotFound(true);
           return;
         }
-        hydrateProject(project);
+        const detail = project.detail || {};
+        setForm({
+          title: project.title || "",
+          topic: detail.summary || "",
+          startPoint: detail.startPoint || "",
+          goal: detail.goal || "",
+          process: detail.process || "",
+          result: detail.result || "",
+          takeaway: detail.takeaway || "",
+          nextStep: detail.nextStep || "",
+          categories: project.tags || [],
+          isPublic: project.public ?? true,
+          allowComments: project.comments ?? false,
+          coauthors: normalizeCoauthors(project.coauthors),
+        });
+        setCoverImage(project.image ? [project.image] : []);
+        setPersistedImages(detail.imagesBySection || {});
+        setNotFound(false);
       } catch {
         if (!canceled) setNotFound(true);
       } finally {
         if (!canceled) setLoading(false);
       }
     };
-
-    fetchProject();
-
+    hydrate();
     return () => {
       canceled = true;
     };
@@ -246,18 +177,30 @@ export default function EditProjectPage() {
       return { ...prev, categories };
     });
 
-  const addCoauthor = () => {
+  const addCoauthor = async () => {
     const trimmed = coauthorName.trim();
     if (!trimmed) return;
     const slug = slugify(trimmed);
     if (!slug) return;
-    setForm((prev) => ({
-      ...prev,
-      coauthors: prev.coauthors.some((co) => co.slug === slug)
-        ? prev.coauthors
-        : [...prev.coauthors, { name: trimmed, slug }],
-    }));
-    setCoauthorName("");
+
+    try {
+      const profile = await getProfileBySlug(slug);
+      if (!profile) {
+        setCoauthorError("ไม่พบชื่อผู้ใช้นี้");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        coauthors: prev.coauthors.some((co) => co.slug === slug)
+          ? prev.coauthors
+          : [...prev.coauthors, { name: profile.username || trimmed, slug }],
+      }));
+      setCoauthorName("");
+      setCoauthorError("");
+    } catch {
+      setCoauthorError("ตรวจสอบชื่อผู้ใช้อีกครั้ง");
+    }
   };
 
   const removeCoauthor = (slug) => {
@@ -269,13 +212,13 @@ export default function EditProjectPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!id || isSavingDisabled) return;
+    if (saving) return;
+    setSaving(true);
 
-    setIsSaving(true);
     const payload = {
       title: form.title.trim() || "Untitled",
       tags: form.categories,
-      image: images.cover[0] || "",
+      image: coverImage[0] || "",
       public: !!form.isPublic,
       comments: !!form.allowComments,
       coauthors: form.coauthors,
@@ -287,48 +230,40 @@ export default function EditProjectPage() {
         result: form.result,
         takeaway: form.takeaway,
         nextStep: form.nextStep,
-        imagesBySection: {
-          startPoint: images.startPoint,
-          goal: images.goal,
-          process: images.process,
-          result: images.result,
-          takeaway: images.takeaway,
-          nextStep: images.nextStep,
-        },
+        imagesBySection: persistedImages,
       },
+      isOwner: true,
     };
 
     try {
-      // Integration note: `updateProject` is the single outbound call for edits; extend payload here if backend expects more fields.
       const updated = await updateProject(id, payload);
       if (!updated) {
         alert("ไม่พบโปรเจกต์นี้");
         return;
       }
-      navigate(`/project/${updated.id || id}`, { replace: true, state: { project: updated } });
-    } catch {
-      alert("ไม่สามารถบันทึกโปรเจกต์ได้ ลองอีกครั้ง");
+      navigate(`/project/${updated.id || id}`, {
+        replace: true,
+        state: { project: updated, isOwner: true },
+      });
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
-  const isSavingDisabled = loading || notFound || isSaving;
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-mOrange text-neutral-900">
+      <div className="min-h-screen bg-mOrange text-white">
         <LandingHeader />
-        <div className="mx-auto max-w-3xl px-4 py-16 text-center text-white">กำลังโหลด...</div>
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center">กำลังโหลด...</div>
       </div>
     );
   }
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-mOrange text-neutral-900">
+      <div className="min-h-screen bg-mOrange text-white">
         <LandingHeader />
-        <div className="mx-auto max-w-3xl px-4 py-16 text-center text-white">ไม่พบโปรเจกต์นี้</div>
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center">ไม่พบโปรเจกต์นี้</div>
       </div>
     );
   }
@@ -353,16 +288,11 @@ export default function EditProjectPage() {
               placeholder="วันนี้จะเล่าเรื่องราวของโปรเจกต์..."
               className={fieldCls}
             />
-            <ImagePicker
-              label="+ เพิ่มรูปปก"
-              max={1}
-              value={images.cover}
-              onChange={(v) => setImages((s) => ({ ...s, cover: v }))}
-            />
+            <ImagePicker value={coverImage} onChange={setCoverImage} />
           </div>
 
           <div>
-            <label className="mv-label font-bold text-lg mb-1 block">โควทหรือข้อความสั้น ๆ </label>
+            <label className="mv-label font-bold text-lg mb-1 block">โควทหรือข้อความสั้น ๆ</label>
             <input
               type="text"
               name="topic"
@@ -379,8 +309,11 @@ export default function EditProjectPage() {
               <input
                 type="text"
                 value={coauthorName}
-                onChange={(e) => setCoauthorName(e.target.value)}
-                placeholder="เพิ่มชื่อผู้ร่วมเขียน"
+                onChange={(e) => {
+                  setCoauthorName(e.target.value);
+                  setCoauthorError("");
+                }}
+                placeholder="พิมพ์ชื่อผู้ใช้ที่ถูกต้อง"
                 className={fieldCls}
               />
               <button
@@ -391,6 +324,7 @@ export default function EditProjectPage() {
                 เพิ่ม
               </button>
             </div>
+            {coauthorError && <p className="mt-2 text-sm text-red-600">{coauthorError}</p>}
             {form.coauthors.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {form.coauthors.map((co) => (
@@ -424,7 +358,6 @@ export default function EditProjectPage() {
                 rows={3}
                 className={areaCls}
               />
-              <ImagePicker value={images[key]} onChange={(v) => setImages((s) => ({ ...s, [key]: v }))} />
             </div>
           ))}
 
@@ -464,27 +397,12 @@ export default function EditProjectPage() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isSavingDisabled}
-              className={`mv-btn bg-[#D35400] text-white font-bold rounded-full px-8 py-2 hover:brightness-110 active:scale-95 transition ${
-                isSavingDisabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              บันทึก
-            </button>
-          </div>
-        </form>
-
-        <aside className="bg-white rounded-xl p-6 h-fit shadow-md w-full md:w-64">
-          <h2 className="mv-heading font-bold mb-3">จัดการโพสต์</h2>
-          <div className="space-y-3 text-sm text-gray-700">
-            <label className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="isPublic" checked={form.isPublic} onChange={handleChange} />
               เปิดโพสต์เป็นสาธารณะ
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 name="allowComments"
@@ -493,19 +411,35 @@ export default function EditProjectPage() {
               />
               เปิดรับความคิดเห็น
             </label>
-            <p className="text-xs text-gray-500 pl-6">
-              * หากไม่เปิดโพสต์เป็นสาธารณะ โปรเจกต์จะแสดงเฉพาะบนโปรไฟล์ของคุณ
-            </p>
           </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className={`mv-btn bg-[#D35400] text-white font-bold rounded-full px-8 py-2 hover:brightness-110 active:scale-95 transition ${
+                saving ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              {saving ? "กำลังบันทึก..." : "บันทึก"}
+            </button>
+          </div>
+        </form>
+
+        <aside className="bg-white rounded-xl p-6 h-fit shadow-md w-full md:w-64">
+          <h2 className="mv-heading font-bold mb-3">จัดการโพสต์</h2>
+          <p className="text-sm text-gray-600">
+            ปรับข้อมูลแล้วกดบันทึกเพื่ออัปเดตหน้าโปรเจกต์ของคุณ การเปลี่ยนแปลงจะแสดงทันที
+          </p>
           <button
             type="submit"
             form="edit-project-form"
-            disabled={isSavingDisabled}
+            disabled={saving}
             className={`mv-btn mt-6 w-full bg-[#D35400] text-white font-bold rounded-full py-2 hover:brightness-110 active:scale-95 transition ${
-              isSavingDisabled ? "opacity-50 cursor-not-allowed" : ""
+              saving ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
-            บันทึก
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
           </button>
         </aside>
       </main>

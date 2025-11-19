@@ -133,7 +133,7 @@ export default function TwoFactorAuth({
       setErr("New code sent to your email. Check your spam folder!");
       setCode(""); // Clear previous code
       inputRef.current?.focus();
-    } catch (error) {
+    } catch {
       setErr("Failed to resend code. Please try again.");
     } finally {
       setIsSending(false);
