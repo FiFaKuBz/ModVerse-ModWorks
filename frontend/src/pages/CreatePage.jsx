@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import { createProject } from "../api/projects";
 import { getTopicChipClass } from "../constants/topicColors";
+import { getProfileBySlug } from "../api/profile";
 
 const slugify = (value = "") =>
   value
@@ -115,15 +116,9 @@ export default function CreatePage() {
     coauthors: [],
   });
 
-  const [images, setImages] = useState({
-    cover: [],
-    startPoint: [],
-    goal: [],
-    process: [],
-    result: [],
-    takeaway: [],
-    nextStep: [],
-  });
+  const [images, setImages] = useState({ cover: [] });
+  const [coauthorName, setCoauthorName] = useState("");
+  const [coauthorError, setCoauthorError] = useState("");
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -142,20 +137,26 @@ export default function CreatePage() {
       return { ...prev, categories };
     });
 
-  const [coauthorName, setCoauthorName] = useState("");
-
-  const addCoauthor = () => {
+  const addCoauthor = async () => {
     const trimmed = coauthorName.trim();
     if (!trimmed) return;
     const slug = slugify(trimmed);
     if (!slug) return;
+
+    const profile = await getProfileBySlug(slug);
+    if (!profile) {
+      setCoauthorError("ไม่พบชื่อผู้ใช้นี้");
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       coauthors: prev.coauthors.some((co) => co.slug === slug)
         ? prev.coauthors
-        : [...prev.coauthors, { name: trimmed, slug }],
+        : [...prev.coauthors, { name: profile.username || trimmed, slug }],
     }));
     setCoauthorName("");
+    setCoauthorError("");
   };
 
   const removeCoauthor = (slug) => {
@@ -169,11 +170,19 @@ export default function CreatePage() {
     e.preventDefault();
 
     const now = Date.now();
+    const emptySections = {
+      startPoint: [],
+      goal: [],
+      process: [],
+      result: [],
+      takeaway: [],
+      nextStep: [],
+    };
     const payload = {
       title: form.title.trim() || "Untitled",
       contributor: "You",
       tags: form.categories,
-      image: images.cover[0] || "",
+      image: images.cover?.[0] || "",
       createdAt: now,
       metrics7d: { likes: 0, saves: 0, comments: 0 },
       public: !!form.isPublic,
@@ -187,14 +196,7 @@ export default function CreatePage() {
         result: form.result,
         takeaway: form.takeaway,
         nextStep: form.nextStep,
-        imagesBySection: {
-          startPoint: images.startPoint,
-          goal: images.goal,
-          process: images.process,
-          result: images.result,
-          takeaway: images.takeaway,
-          nextStep: images.nextStep,
-        },
+        imagesBySection: emptySections,
       },
     };
 
@@ -229,7 +231,7 @@ export default function CreatePage() {
               label="+ เพิ่มรูปปก"
               max={1}
               value={images.cover}
-              onChange={(v) => setImages((s) => ({ ...s, cover: v }))}
+              onChange={(v) => setImages({ cover: v })}
             />
           </div>
 
@@ -298,8 +300,6 @@ export default function CreatePage() {
               rows={3}
               className={areaCls}
             />
-            <ImagePicker
-              value={images.startPoint}
               onChange={(v) => setImages((s) => ({ ...s, startPoint: v }))}
             />
           </div>
@@ -315,7 +315,6 @@ export default function CreatePage() {
               rows={3}
               className={areaCls}
             />
-            <ImagePicker value={images.goal} onChange={(v) => setImages((s) => ({ ...s, goal: v }))} />
           </div>
 
           {/* Process */}
@@ -329,7 +328,6 @@ export default function CreatePage() {
               rows={3}
               className={areaCls}
             />
-            <ImagePicker value={images.process} onChange={(v) => setImages((s) => ({ ...s, process: v }))} />
           </div>
 
           {/* Result */}
@@ -343,7 +341,6 @@ export default function CreatePage() {
               rows={3}
               className={areaCls}
             />
-            <ImagePicker value={images.result} onChange={(v) => setImages((s) => ({ ...s, result: v }))} />
           </div>
 
           {/* Takeaway */}
@@ -357,7 +354,6 @@ export default function CreatePage() {
               rows={3}
               className={areaCls}
             />
-            <ImagePicker value={images.takeaway} onChange={(v) => setImages((s) => ({ ...s, takeaway: v }))} />
           </div>
 
           {/* Next step */}
@@ -371,7 +367,6 @@ export default function CreatePage() {
               rows={3}
               className={areaCls}
             />
-            <ImagePicker value={images.nextStep} onChange={(v) => setImages((s) => ({ ...s, nextStep: v }))} />
           </div>
 
           {/* Tags */}
