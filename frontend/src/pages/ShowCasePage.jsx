@@ -9,56 +9,56 @@ import { listProjects } from "../api/projects";
 import { getTopicChipClass } from "../constants/topicColors";
 
 /* ---------- mock data + helpers ---------- */
-const MOCK = [
-  {
-    id: "p1",
-    title: "Data Visualization Hub",
-    contributor: "Lara Cooper",
-    tags: ["UX/UI", "Database", "Data Visualization"],
-    image:
-      "https://images.unsplash.com/photo-1543294001-f7cd5d7fb516?q=80&w=1000&auto=format&fit=crop",
-    metrics7d: { likes: 42, saves: 21, comments: 6 },
-  },
-  {
-    id: "p2",
-    title: "MoodBoard AI",
-    contributor: "Pim",
-    tags: ["UX/UI", "Digital Circuit"],
-    image:
-      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000&auto=format&fit=crop",
-    metrics7d: { likes: 12, saves: 9, comments: 3 },
-  },
-  ...Array.from({ length: 22 }).map((_, i) => ({
-    id: "auto-" + i,
-    title: "Project title",
-    contributor: "Project Contributor",
-    tags: ["UX/UI", "Transportation", "Algorithm", "Database", "Digital Circuit"].slice(
-      0,
-      1 + (i % 4)
-    ),
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1000&auto=format&fit=crop",
-    metrics7d: {
-      likes: Math.floor(Math.random() * 60),
-      saves: Math.floor(Math.random() * 35),
-      comments: Math.floor(Math.random() * 12),
-    },
-  })),
-];
+// const MOCK = [
+//   {
+//     id: "p1",
+//     title: "Data Visualization Hub",
+//     contributor: "Lara Cooper",
+//     tags: ["UX/UI", "Database", "Data Visualization"],
+//     image:
+//       "https://images.unsplash.com/photo-1543294001-f7cd5d7fb516?q=80&w=1000&auto=format&fit=crop",
+//     metrics7d: { likes: 42, saves: 21, comments: 6 },
+//   },
+//   {
+//     id: "p2",
+//     title: "MoodBoard AI",
+//     contributor: "Pim",
+//     tags: ["UX/UI", "Digital Circuit"],
+//     image:
+//       "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000&auto=format&fit=crop",
+//     metrics7d: { likes: 12, saves: 9, comments: 3 },
+//   },
+//   ...Array.from({ length: 22 }).map((_, i) => ({
+//     id: "auto-" + i,
+//     title: "Project title",
+//     contributor: "Project Contributor",
+//     tags: ["UX/UI", "Transportation", "Algorithm", "Database", "Digital Circuit"].slice(
+//       0,
+//       1 + (i % 4)
+//     ),
+//     image:
+//       "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1000&auto=format&fit=crop",
+//     metrics7d: {
+//       likes: Math.floor(Math.random() * 60),
+//       saves: Math.floor(Math.random() * 35),
+//       comments: Math.floor(Math.random() * 12),
+//     },
+//   })),
+// ];
 
 const score7d = (m) => m.likes * 1 + m.saves * 2 + m.comments * 3;
-const mergeProjects = (primary = [], fallback = []) => {
-  const seen = new Set();
-  const output = [];
-  [...primary, ...fallback].forEach((item) => {
-    if (!item) return;
-    const key = item.id || `${item.title}-${item.contributor}`;
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    output.push(item);
-  });
-  return output;
-};
+// const mergeProjects = (primary = [], fallback = []) => {
+//   const seen = new Set();
+//   const output = [];
+//   [...primary, ...fallback].forEach((item) => {
+//     if (!item) return;
+//     const key = item.id || `${item.title}-${item.contributor}`;
+//     if (!key || seen.has(key)) return;
+//     seen.add(key);
+//     output.push(item);
+//   });
+//   return output;
+// };
 
 // Topic chip color mapping (copied from TopicTray.jsx)
 
@@ -67,7 +67,7 @@ const mergeProjects = (primary = [], fallback = []) => {
 export default function ShowcasePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
-  const [projects, setProjects] = useState(MOCK);
+  const [projects, setProjects] = useState([]);
 
   const pageFromUrl = Number(searchParams.get("page") || 1);
   // Use a new search param 'topics' for multi-select
@@ -85,7 +85,7 @@ export default function ShowcasePage() {
   const ALL_TOPICS = useMemo(() => {
     const s = new Set();
     projects.forEach((p) => p.tags?.forEach((t) => s.add(t)));
-    ["UX/UI", "Transportation", "Database", "Algorithm", "Digital Circuit", "Data Visualization"].forEach(
+    [].forEach(
       (t) => s.add(t)
     );
     return Array.from(s).sort();
@@ -100,9 +100,10 @@ export default function ShowcasePage() {
         const remote = await listProjects();
         if (canceled) return;
         const arr = Array.isArray(remote) ? remote : [];
-        setProjects(mergeProjects(arr, MOCK));
+        // setProjects(mergeProjects(arr, MOCK));
+        setProjects(arr);
       } catch {
-        if (!canceled) setProjects([...MOCK]);
+        if (!canceled) setProjects([]);
       } finally {
         if (!canceled) setIsLoading(false);
       }

@@ -8,30 +8,30 @@ import { getProject, listProjects } from "../api/projects";
 import { getTopicDetailBg } from "../constants/topicColors";
 
 const FALLBACK_RECOMMENDATIONS = [
-  {
-    id: "fallback-urban",
-    title: "Urban Mobility Planner",
-    contributor: "Lara Cooper",
-    tags: ["Transportation", "UX/UI"],
-    image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
-    metrics7d: { likes: 42, saves: 18, comments: 6 },
-  },
-  {
-    id: "fallback-visual",
-    title: "Data Visualization Hub",
-    contributor: "Pim",
-    tags: ["Data Visualization", "Database"],
-    image: "https://editor.analyticsvidhya.com/uploads/805881.1.png",
-    metrics7d: { likes: 30, saves: 14, comments: 5 },
-  },
-  {
-    id: "fallback-smartcar",
-    title: "Smart Car",
-    contributor: "Alex",
-    tags: ["Transportation", "Digital Circuit"],
-    image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
-    metrics7d: { likes: 27, saves: 9, comments: 4 },
-  },
+  // {
+  //   id: "fallback-urban",
+  //   title: "Urban Mobility Planner",
+  //   contributor: "Lara Cooper",
+  //   tags: ["Transportation", "UX/UI"],
+  //   image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
+  //   metrics7d: { likes: 42, saves: 18, comments: 6 },
+  // },
+  // {
+  //   id: "fallback-visual",
+  //   title: "Data Visualization Hub",
+  //   contributor: "Pim",
+  //   tags: ["Data Visualization", "Database"],
+  //   image: "https://editor.analyticsvidhya.com/uploads/805881.1.png",
+  //   metrics7d: { likes: 30, saves: 14, comments: 5 },
+  // },
+  // {
+  //   id: "fallback-smartcar",
+  //   title: "Smart Car",
+  //   contributor: "Alex",
+  //   tags: ["Transportation", "Digital Circuit"],
+  //   image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80",
+  //   metrics7d: { likes: 27, saves: 9, comments: 4 },
+  // },
 ];
 
 const score7d = (metrics = {}) => {

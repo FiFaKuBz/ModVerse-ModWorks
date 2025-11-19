@@ -2,8 +2,20 @@
 import React, { useState,useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
-import TwoFactorMock from "../auth/TwoFactorMock";
+import TwoFactor from "../auth/TwoFactor";
 import { useSession } from "../session/SessionContext";
+
+const bypassAuthRequest = async () => {
+  const res = await fetch("/api/auth/bypass-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include", 
+  });
+  if (!res.ok) {
+    throw new Error("Backend bypass failed.");
+  }
+  return res.json();
+};
 
 export default function LandingLogin() {
   const [step, setStep] = useState("login");  // 'login' | '2fa'
@@ -13,12 +25,46 @@ export default function LandingLogin() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (searchParams.get("auth") === "ok") {
-      setStep("2fa")
-    }
-  }, [searchParams]);
 
+// bypassAuthRequest
+useEffect(() => {
+    const testBypass = searchParams.get("test") === "true";
+    const authOk = searchParams.get("auth") === "ok";
+
+    if (authOk) {
+      setStep("2fa");
+    }
+
+    // ✅ FIX: ย้าย Logic การ Redirect เข้ามาใน useEffect โดยตรง
+    if (testBypass) {
+        const runBypass = async () => {
+            try {
+                setBanner("Attempting full authentication bypass...");
+                
+                // 1. Call Backend to set Flask Session
+                await bypassAuthRequest(); 
+                
+                // 2. Call Frontend Session Provider to set timer
+                login(); 
+                
+                setBanner("Bypass successful! Redirecting...");
+                
+                // 3. THE REDIRECT STEP: Now runs within the effect's async chain
+                navigate("/showcase", { replace: true });
+
+            } catch (error) {
+                console.error("Full bypass failed:", error);
+                setBanner(`Full bypass failed: ${error.message}`);
+            }
+        };
+        runBypass();
+    }
+
+    // ส่วนของ Logic เดิม (auth=ok)
+    // ...
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // [searchParams] คือ Dependency ที่ถูกต้อง
 
   const expiredMsg =
     location.state && location.state.reason === "expired"
@@ -38,7 +84,7 @@ export default function LandingLogin() {
 
   if (step === "2fa") {
     return (
-      <TwoFactorMock
+      <TwoFactor
         onSuccess={handle2FASuccess}
         onBack={() => setStep("login")}
         onMaxFail={handleMaxFail}

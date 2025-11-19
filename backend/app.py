@@ -15,10 +15,12 @@ from .routes.search_routes import search_bp  # NEW
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
+LOCAL_ORIGINS = "http://localhost:5173"
+PRODUCTION_ORIGINS = "http://localhost:3000"
 # CORS Configuration (สำคัญสำหรับ API!)
 CORS(app, 
      supports_credentials=True,  # อนุญาตให้ส่ง cookies
-     origins=["http://localhost:3000", "http://localhost:5000"],  # frontend origins
+     origins=[PRODUCTION_ORIGINS, "http://localhost:5000"],  # frontend origins
      allow_headers=["Content-Type", "Authorization", "Cookie"],
      expose_headers=["Set-Cookie"])
 
@@ -54,7 +56,7 @@ init_project_routes(project_model)
 # ลงทะเบียน blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(user_bp, url_prefix='/api/users')
-app.register_blueprint(project_bp, url_prefix='/api/project')
+app.register_blueprint(project_bp, url_prefix='/api/projects')
 app.register_blueprint(search_bp, url_prefix='/api/search')
 
 @app.route('/', defaults={'path': ''})

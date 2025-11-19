@@ -14,7 +14,7 @@ def init_project_routes(model):
     project_model = model
 
 # ==================== CREATE ====================
-@project_bp.route("/projects", methods=["POST"])
+@project_bp.route("/", methods=["POST"])
 @login_required
 def create_project():
     """
@@ -82,7 +82,7 @@ def create_project():
         return jsonify({"error": str(e)}), 500
 
 # ==================== READ ====================
-@project_bp.route("/projects", methods=["GET"])
+@project_bp.route("/", methods=["GET"])
 @login_required
 def list_my_projects():
     """
@@ -91,7 +91,7 @@ def list_my_projects():
     Query Parameters:
     - q: ค้นหาตามชื่อโปรเจค (optional)
     
-    Example: /projects?q=my%20project
+    Example: /?q=my%20project
     """
     try:
         user_id = ObjectId(session["user"]["id"])
@@ -113,7 +113,7 @@ def list_my_projects():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@project_bp.route("/projects/public", methods=["GET"])
+@project_bp.route("/public", methods=["GET"])
 def list_public_projects():
     """
     ดูรายการโปรเจคสาธารณะ (ไม่ต้องล็อกอิน)
@@ -122,7 +122,7 @@ def list_public_projects():
     - q: ค้นหาตามชื่อ (optional)
     - status: กรองตามสถานะ (optional)
     
-    Example: /projects/public?status=completed&q=research
+    Example: /public?status=completed&q=research
     """
     try:
         search_query = request.args.get("q")
@@ -144,7 +144,7 @@ def list_public_projects():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@project_bp.route("/projects/<project_id>", methods=["GET"])
+@project_bp.route("/<project_id>", methods=["GET"])
 def get_project(project_id):
     """
     ดูรายละเอียดโปรเจคเดียว
@@ -183,7 +183,7 @@ def get_project(project_id):
         return jsonify({"error": str(e)}), 500
 
 # ==================== UPDATE ====================
-@project_bp.route("/projects/<project_id>", methods=["PUT", "PATCH"])
+@project_bp.route("/<project_id>", methods=["PUT", "PATCH"])
 @login_required
 def update_project(project_id):
     """
@@ -231,7 +231,7 @@ def update_project(project_id):
         return jsonify({"error": str(e)}), 500
 
 # ==================== DELETE ====================
-@project_bp.route("/projects/<project_id>", methods=["DELETE"])
+@project_bp.route("/<project_id>", methods=["DELETE"])
 @login_required
 def delete_project(project_id):
     """
@@ -267,7 +267,7 @@ def delete_project(project_id):
         return jsonify({"error": str(e)}), 500
 
 # ==================== BONUS: Metrics ====================
-@project_bp.route("/projects/<project_id>/like", methods=["POST"])
+@project_bp.route("/<project_id>/like", methods=["POST"])
 @login_required
 def like_project(project_id):
     """เพิ่มจำนวนไลค์ (bonus feature)"""
