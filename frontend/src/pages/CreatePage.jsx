@@ -195,6 +195,7 @@ export default function CreatePage() {
       title: form.title.trim() || "Untitled",
       contributor: "You",
       tags: form.categories,
+      categories: form.categories,
       image: coverImage[0] || "",
       createdAt: now,
       metrics7d: { likes: 0, saves: 0, comments: 0 },

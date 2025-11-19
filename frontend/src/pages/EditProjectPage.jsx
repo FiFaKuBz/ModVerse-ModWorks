@@ -218,6 +218,7 @@ export default function EditProjectPage() {
     const payload = {
       title: form.title.trim() || "Untitled",
       tags: form.categories,
+      categories: form.categories,
       image: coverImage[0] || "",
       public: !!form.isPublic,
       comments: !!form.allowComments,
@@ -397,22 +398,6 @@ export default function EditProjectPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isPublic" checked={form.isPublic} onChange={handleChange} />
-              เปิดโพสต์เป็นสาธารณะ
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="allowComments"
-                checked={form.allowComments}
-                onChange={handleChange}
-              />
-              เปิดรับความคิดเห็น
-            </label>
-          </div>
-
           <div className="flex justify-end">
             <button
               type="submit"
@@ -428,9 +413,24 @@ export default function EditProjectPage() {
 
         <aside className="bg-white rounded-xl p-6 h-fit shadow-md w-full md:w-64">
           <h2 className="mv-heading font-bold mb-3">จัดการโพสต์</h2>
-          <p className="text-sm text-gray-600">
-            ปรับข้อมูลแล้วกดบันทึกเพื่ออัปเดตหน้าโปรเจกต์ของคุณ การเปลี่ยนแปลงจะแสดงทันที
-          </p>
+          <div className="space-y-3 text-sm text-gray-700">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="isPublic" checked={form.isPublic} onChange={handleChange} />
+              เปิดโพสต์เป็นสาธารณะ
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="allowComments"
+                checked={form.allowComments}
+                onChange={handleChange}
+              />
+              เปิดรับความคิดเห็น
+            </label>
+            <p className="text-xs text-gray-500 pl-1">
+              * หากไม่เปิดโพสต์เป็นสาธารณะ โปรเจกต์จะแสดงเฉพาะในโปรไฟล์ของคุณ
+            </p>
+          </div>
           <button
             type="submit"
             form="edit-project-form"

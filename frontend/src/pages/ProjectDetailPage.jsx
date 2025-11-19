@@ -339,7 +339,11 @@ export default function ProjectDetailPage() {
     );
   }, [project, catalog]);
 
-  const primaryTag = project?.tags?.[0] || null;
+  const topicOrder =
+    (project?.categories && project.categories.length
+      ? project.categories
+      : project?.tags) || [];
+  const primaryTag = topicOrder[0] || null;
   const primaryBg = getTopicDetailBg(primaryTag) || "#D3C2CD";
   const isOwner = Boolean(
     location.state?.isOwner ?? project?.isOwner ?? project?.contributor === "You"
