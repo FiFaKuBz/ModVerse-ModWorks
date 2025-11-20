@@ -77,8 +77,13 @@ export default function SessionProvider({ children }) {
     return () => evs.forEach((e) => window.removeEventListener(e, onAct));
   }, [expiresAt, bump]);
 
+  const lastPath = useRef(location.pathname);
   useEffect(() => {
-    if (expiresAt) bump();
+    if (!expiresAt) return;
+    if (lastPath.current !== location.pathname) {
+      lastPath.current = location.pathname;
+      bump();
+    }
   }, [location.pathname, expiresAt, bump]);
 
   const value = useMemo(

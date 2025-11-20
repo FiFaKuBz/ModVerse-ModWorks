@@ -62,7 +62,7 @@ SVG icons live under `frontend/asset/`. Import them in components when you need 
 ## Pages
 
 - `LandingLogin.jsx` – Login/signup screen. Google button hits `/api/auth/login`.
-- `LandingAboutPage.jsx` – Static about page. Replace with CMS data later if needed.
+- `LandingAboutPage.jsx` – Static about page.
 - `ShowCasePage.jsx` – Main gallery. Uses `listProjects` for data + topic filtering.
 - `CreatePage.jsx` – New project form. Sends data through `createProject`.
 - `EditProjectPage.jsx` – Edit existing project. Uses `getProject` + `updateProject`.

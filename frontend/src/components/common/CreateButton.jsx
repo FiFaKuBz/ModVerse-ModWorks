@@ -1,6 +1,6 @@
 // src/components/common/CreateButton.jsx
 import { Link } from "react-router-dom";
-import createIcon from "../../../asset/create-button.svg";
+import createIcon from "../../assets/create-button.svg";
 
 export default function CreateButton({ to = "/create" }) {
   return (
