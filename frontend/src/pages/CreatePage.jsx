@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import LandingHeader from "../components/Landing/LandingHeader";
 import { createProject } from "../api/projects";
 import { getTopicChipClass } from "../constants/topicColors";
+import { getProfileBySlug } from "../api/profile";
 
 const slugify = (value = "") =>
   value
@@ -12,13 +13,31 @@ const slugify = (value = "") =>
     .replace(/\s+/g, "-");
 
 const CATEGORY_OPTIONS = [
-  // "UX/UI",
-  // "Transportation",
-  // "Database",
-  // "Algorithm",
-  // "Digital Circuit",
-  // "Data Visualization",
+  "UX/UI",
+  "Transportation",
+  "Database",
+  "Algorithm",
+  "Digital Circuit",
+  "Data Visualization",
 ];
+
+const SECTION_LABELS = {
+  startPoint: "จุดเริ่มต้น",
+  goal: "เป้าหมาย",
+  process: "กระบวนการ",
+  result: "ผลลัพธ์",
+  takeaway: "สิ่งที่ได้จากโปรเจกต์",
+  nextStep: "สิ่งที่อยากทำต่อ",
+};
+
+const SECTION_PLACEHOLDERS = {
+  startPoint: "ทำไมถึงเริ่มทำโปรเจกต์นี้? เล่าที่มาแบบสั้น ๆ เช่น ปัญหาที่เจอ, หรือโจทย์ที่ได้รับ",
+  goal: "อยากแก้ปัญหาอะไร หรืออยากสร้างอะไรขึ้นมา? สรุปเป้าหมายสั้น ๆ",
+  process: "ใช้วิธีไหนหรือเครื่องมืออะไรบ้าง?",
+  result: "ได้อะไรออกมาจริง? บอกสิ่งที่เสร็จแล้ว หรือสิ่งที่ผู้ใช้ได้เห็น/ใช้",
+  takeaway: "เรียนรู้อะไรจากโปรเจกต์นี้?",
+  nextStep: "จะพัฒนาอะไรต่อ อยากต่อยอดอย่างไร หรืออยากได้ความช่วยเหลือด้านใด?",
+};
 
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -28,14 +47,12 @@ const fileToDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
-/* ---------- small reusable picker (embedded) ---------- */
-function ImagePicker({ label = "+ เพิ่มรูปภาพ", value = [], onChange, max = 6 }) {
+function ImagePicker({ label = "+ เพิ่มรูปปก", value = [], onChange }) {
   const handleFiles = async (files) => {
     const arr = Array.from(files || []);
     if (!arr.length) return;
     const dataUrls = await Promise.all(arr.map(fileToDataUrl));
-    const next = [...value, ...dataUrls].slice(0, max);
-    onChange(next);
+    onChange(dataUrls.slice(0, 1));
   };
 
   const handleInputChange = async (event) => {
@@ -56,26 +73,22 @@ function ImagePicker({ label = "+ เพิ่มรูปภาพ", value = []
 
   return (
     <div className="mt-2">
-      {/* button */}
       <label className="mv-btn inline-flex items-center gap-2 text-sm text-[#D35400] font-semibold cursor-pointer">
         <input
           type="file"
           accept="image/*"
-          multiple={max !== 1}
           className="sr-only"
           onChange={handleInputChange}
         />
         {label}
       </label>
 
-      {/* previews */}
       {value.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-3">
           {value.map((src, i) => (
             <div
               key={`${i}-${src.slice(0, 12)}`}
               className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-300"
-              title={`image-${i + 1}`}
             >
               <img src={src} alt="" className="w-full h-full object-cover" />
               <button
@@ -83,7 +96,6 @@ function ImagePicker({ label = "+ เพิ่มรูปภาพ", value = []
                 onClick={() => removeAt(i)}
                 className="absolute top-1 right-1 rounded-md bg-black/60 text-white text-xs px-1.5 py-0.5 hover:bg-black"
                 aria-label="Remove image"
-                title="ลบรูปภาพ"
               >
                 ✕
               </button>
@@ -91,11 +103,10 @@ function ImagePicker({ label = "+ เพิ่มรูปภาพ", value = []
           ))}
         </div>
       )}
-      <p className="mt-1 text-xs text-gray-500">รองรับภาพสูงสุด {max} รูป (JPG/PNG/GIF)</p>
+      <p className="mt-1 text-xs text-gray-500">รองรับภาพ 1 รูป (JPG/PNG/GIF)</p>
     </div>
   );
 }
-/* ----------------------------------------------------- */
 
 export default function CreatePage() {
   const navigate = useNavigate();
@@ -115,15 +126,14 @@ export default function CreatePage() {
     coauthors: [],
   });
 
-  const [images, setImages] = useState({
-    cover: [],
-    startPoint: [],
-    goal: [],
-    process: [],
-    result: [],
-    takeaway: [],
-    nextStep: [],
-  });
+  const [coverImage, setCoverImage] = useState([]);
+  const [coauthorName, setCoauthorName] = useState("");
+  const [coauthorError, setCoauthorError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const fieldCls =
+    "mv-field w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-orange-400";
+  const areaCls = fieldCls + " resize-none";
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -142,20 +152,30 @@ export default function CreatePage() {
       return { ...prev, categories };
     });
 
-  const [coauthorName, setCoauthorName] = useState("");
-
-  const addCoauthor = () => {
+  const addCoauthor = async () => {
     const trimmed = coauthorName.trim();
     if (!trimmed) return;
     const slug = slugify(trimmed);
     if (!slug) return;
-    setForm((prev) => ({
-      ...prev,
-      coauthors: prev.coauthors.some((co) => co.slug === slug)
-        ? prev.coauthors
-        : [...prev.coauthors, { name: trimmed, slug }],
-    }));
-    setCoauthorName("");
+
+    try {
+      const profile = await getProfileBySlug(slug);
+      if (!profile) {
+        setCoauthorError("ไม่พบชื่อผู้ใช้นี้");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        coauthors: prev.coauthors.some((co) => co.slug === slug)
+          ? prev.coauthors
+          : [...prev.coauthors, { name: profile.username || trimmed, slug }],
+      }));
+      setCoauthorName("");
+      setCoauthorError("");
+    } catch {
+      setCoauthorError("ตรวจสอบชื่อผู้ใช้อีกครั้ง");
+    }
   };
 
   const removeCoauthor = (slug) => {
@@ -167,13 +187,16 @@ export default function CreatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
 
     const now = Date.now();
     const payload = {
       title: form.title.trim() || "Untitled",
       contributor: "You",
       tags: form.categories,
-      image: images.cover[0] || "",
+      categories: form.categories,
+      image: coverImage[0] || "",
       createdAt: now,
       metrics7d: { likes: 0, saves: 0, comments: 0 },
       public: !!form.isPublic,
@@ -187,34 +210,29 @@ export default function CreatePage() {
         result: form.result,
         takeaway: form.takeaway,
         nextStep: form.nextStep,
-        imagesBySection: {
-          startPoint: images.startPoint,
-          goal: images.goal,
-          process: images.process,
-          result: images.result,
-          takeaway: images.takeaway,
-          nextStep: images.nextStep,
-        },
+        imagesBySection: {},
       },
+      isOwner: true,
     };
 
-    // Integration note: `createProject` is the single point to swap once the backend POST changes.
-    const saved = await createProject(payload);
-    navigate(`/project/${saved.id}`, { state: { project: saved } });
+    try {
+      const saved = await createProject(payload);
+      navigate(`/project/${saved.id}`, { replace: true, state: { project: saved, isOwner: true } });
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const fieldCls =
-    "mv-field w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-orange-400";
-  const areaCls = fieldCls + " resize-none";
 
   return (
     <div className="min-h-screen bg-mOrange text-neutral-900">
       <LandingHeader />
 
       <main className="mx-auto max-w-7xl py-10 px-4 flex flex-col md:flex-row gap-10 justify-center">
-        {/* ---------- Left: form ---------- */}
-        <form onSubmit={handleSubmit} className="flex-1 bg-white rounded-xl p-8 shadow-lg space-y-6">
-          {/* Project title */}
+        <form
+          id="create-project-form"
+          onSubmit={handleSubmit}
+          className="flex-1 bg-white rounded-xl p-8 shadow-lg space-y-6"
+        >
           <div>
             <label className="mv-label font-bold text-lg mb-1 block">ชื่อโปรเจกต์หรือบทความนี้</label>
             <input
@@ -225,17 +243,11 @@ export default function CreatePage() {
               placeholder="วันนี้จะเล่าเรื่องราวของโปรเจกต์..."
               className={fieldCls}
             />
-            <ImagePicker
-              label="+ เพิ่มรูปปก"
-              max={1}
-              value={images.cover}
-              onChange={(v) => setImages((s) => ({ ...s, cover: v }))}
-            />
+            <ImagePicker value={coverImage} onChange={setCoverImage} />
           </div>
 
-          {/* Topic */}
           <div>
-            <label className="mv-label font-bold text-lg mb-1 block">โควทหรือข้อความสั้น ๆ </label>
+            <label className="mv-label font-bold text-lg mb-1 block">โควทหรือข้อความสั้น ๆ</label>
             <input
               type="text"
               name="topic"
@@ -246,15 +258,17 @@ export default function CreatePage() {
             />
           </div>
 
-          {/* Co-authors */}
           <div>
             <label className="mv-label font-bold text-lg mb-1 block">ผู้ร่วมเขียน (Co-author)</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={coauthorName}
-                onChange={(e) => setCoauthorName(e.target.value)}
-                placeholder="เพิ่มชื่อผู้ร่วมเขียน"
+                onChange={(e) => {
+                  setCoauthorName(e.target.value);
+                  setCoauthorError("");
+                }}
+                placeholder="พิมพ์ชื่อผู้ใช้ที่ถูกต้อง"
                 className={fieldCls}
               />
               <button
@@ -265,6 +279,7 @@ export default function CreatePage() {
                 เพิ่ม
               </button>
             </div>
+            {coauthorError && <p className="mt-2 text-sm text-red-600">{coauthorError}</p>}
             {form.coauthors.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {form.coauthors.map((co) => (
@@ -287,94 +302,20 @@ export default function CreatePage() {
             )}
           </div>
 
-          {/* Starting point */}
-          <div>
-            <label className="mv-label font-bold text-lg mb-1 block">จุดเริ่มต้น</label>
-            <textarea
-              name="startPoint"
-              value={form.startPoint}
-              onChange={handleChange}
-              placeholder="ทำไมถึงเริ่มทำโปรเจกต์นี้? เล่าที่มาแบบสั้น ๆ เช่น ปัญหาที่เจอ, หรือโจทย์ที่ได้รับ"
-              rows={3}
-              className={areaCls}
-            />
-            <ImagePicker
-              value={images.startPoint}
-              onChange={(v) => setImages((s) => ({ ...s, startPoint: v }))}
-            />
-          </div>
+          {["startPoint", "goal", "process", "result", "takeaway", "nextStep"].map((key) => (
+            <div key={key}>
+              <label className="mv-label font-bold text-lg mb-1 block">{SECTION_LABELS[key]}</label>
+              <textarea
+                name={key}
+                value={form[key]}
+                onChange={handleChange}
+                placeholder={SECTION_PLACEHOLDERS[key]}
+                rows={3}
+                className={areaCls}
+              />
+            </div>
+          ))}
 
-          {/* Goal */}
-          <div>
-            <label className="mv-label font-bold text-lg mb-1 block">เป้าหมาย</label>
-            <textarea
-              name="goal"
-              value={form.goal}
-              onChange={handleChange}
-              placeholder="อยากแก้ปัญหาอะไร หรืออยากสร้างอะไรขึ้นมา? สรุปเป้าหมายสั้น ๆ"
-              rows={3}
-              className={areaCls}
-            />
-            <ImagePicker value={images.goal} onChange={(v) => setImages((s) => ({ ...s, goal: v }))} />
-          </div>
-
-          {/* Process */}
-          <div>
-            <label className="mv-label font-bold text-lg mb-1 block">กระบวนการ</label>
-            <textarea
-              name="process"
-              value={form.process}
-              onChange={handleChange}
-              placeholder="ใช้วิธีไหนหรือเครื่องมืออะไรบ้าง?"
-              rows={3}
-              className={areaCls}
-            />
-            <ImagePicker value={images.process} onChange={(v) => setImages((s) => ({ ...s, process: v }))} />
-          </div>
-
-          {/* Result */}
-          <div>
-            <label className="mv-label font-bold text-lg mb-1 block">ผลลัพธ์</label>
-            <textarea
-              name="result"
-              value={form.result}
-              onChange={handleChange}
-              placeholder="ได้อะไรออกมาจริง? บอกสิ่งที่เสร็จแล้ว หรือสิ่งที่ผู้ใช้ได้เห็น/ใช้"
-              rows={3}
-              className={areaCls}
-            />
-            <ImagePicker value={images.result} onChange={(v) => setImages((s) => ({ ...s, result: v }))} />
-          </div>
-
-          {/* Takeaway */}
-          <div>
-            <label className="mv-label font-bold text-lg mb-1 block">สิ่งที่ได้จากโปรเจกต์นี้</label>
-            <textarea
-              name="takeaway"
-              value={form.takeaway}
-              onChange={handleChange}
-              placeholder="เรียนรู้อะไรจากโปรเจกต์นี้?"
-              rows={3}
-              className={areaCls}
-            />
-            <ImagePicker value={images.takeaway} onChange={(v) => setImages((s) => ({ ...s, takeaway: v }))} />
-          </div>
-
-          {/* Next step */}
-          <div>
-            <label className="mv-label font-bold text-lg mb-1 block">สิ่งที่อยากทำต่อ</label>
-            <textarea
-              name="nextStep"
-              value={form.nextStep}
-              onChange={handleChange}
-              placeholder="จะพัฒนาอะไรต่อ อยากต่อยอดอย่างไร หรืออยากได้ความช่วยเหลือด้านใด?"
-              rows={3}
-              className={areaCls}
-            />
-            <ImagePicker value={images.nextStep} onChange={(v) => setImages((s) => ({ ...s, nextStep: v }))} />
-          </div>
-
-          {/* Tags */}
           <div>
             <label className="mv-label font-bold text-lg mb-1 block">หมวดหมู่ที่เกี่ยวข้อง</label>
             <p className="font-IBM text-xs text-neutral-600 mb-2">
@@ -411,18 +352,19 @@ export default function CreatePage() {
             </div>
           </div>
 
-          {/* Submit */}
           <div className="flex justify-end">
             <button
               type="submit"
-              className="mv-btn bg-[#D35400] text-white font-bold rounded-full px-8 py-2 hover:brightness-110 active:scale-95 transition"
+              disabled={saving}
+              className={`mv-btn bg-[#D35400] text-white font-bold rounded-full px-8 py-2 hover:brightness-110 active:scale-95 transition ${
+                saving ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
-              โพสต์
+              {saving ? "กำลังบันทึก..." : "โพสต์"}
             </button>
           </div>
         </form>
 
-        {/* ---------- Right: options ---------- */}
         <aside className="bg-white rounded-xl p-6 h-fit shadow-md w-full md:w-64">
           <h2 className="mv-heading font-bold mb-3">จัดการโพสต์</h2>
           <div className="space-y-3 text-sm text-gray-700">
@@ -444,17 +386,19 @@ export default function CreatePage() {
               />
               เปิดรับความคิดเห็น
             </label>
-            {/* TODO(team): wire allowComments to comment module on ProjectDetailPage */}
             <p className="text-xs text-gray-500 pl-1">
               * หากไม่เปิดโพสต์เป็นสาธารณะ โปรเจกต์จะแสดงเฉพาะในโปรไฟล์ของคุณ
             </p>
           </div>
           <button
-            type="button"
-            onClick={() => alert("บันทึกแล้ว (mock)")}
-            className="mv-btn mt-6 w-full bg-[#D35400] text-white font-bold rounded-full py-2 hover:brightness-110 active:scale-95 transition"
+            type="submit"
+            form="create-project-form"
+            disabled={saving}
+            className={`mv-btn mt-6 w-full bg-[#D35400] text-white font-bold rounded-full py-2 hover:brightness-110 active:scale-95 transition ${
+              saving ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            บันทึก
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
           </button>
         </aside>
       </main>

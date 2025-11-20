@@ -334,12 +334,20 @@ export default function ProjectDetailPage() {
   }, [coauthors.length]);
   const recommended = useMemo(() => {
     if (!project) return FALLBACK_RECOMMENDATIONS;
-    return pickRecommendedProjects(project.id, project.tags || [], catalog);
+    return pickRecommendedProjects(project.id, project.tags || [], catalog).filter(
+      (item) => item.id !== project.id
+    );
   }, [project, catalog]);
 
-  const primaryTag = project?.tags?.[0] || null;
+  const topicOrder =
+    (project?.categories && project.categories.length
+      ? project.categories
+      : project?.tags) || [];
+  const primaryTag = topicOrder[0] || null;
   const primaryBg = getTopicDetailBg(primaryTag) || "#D3C2CD";
-  const isOwner = useMemo(() => id?.startsWith("u-"), [id]);
+  const isOwner = Boolean(
+    location.state?.isOwner ?? project?.isOwner ?? project?.contributor === "You"
+  );
 
   if (loading && !project) {
     return (
