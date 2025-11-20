@@ -7,6 +7,7 @@ import Pagination from "../components/common/Pagination";
 import CreateButton from "../components/common/CreateButton";
 import { listProjects } from "../api/projects";
 import { getTopicChipClass } from "../constants/topicColors";
+import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
 
 /* ---------- mock data + helpers ---------- */
 // const MOCK = [
@@ -46,7 +47,6 @@ import { getTopicChipClass } from "../constants/topicColors";
 //   })),
 // ];
 
-const score7d = (m) => m.likes * 1 + m.saves * 2 + m.comments * 3;
 // const mergeProjects = (primary = [], fallback = []) => {
 //   const seen = new Set();
 //   const output = [];
@@ -130,11 +130,17 @@ export default function ShowcasePage() {
 
     const dataset = projects.map((item) => ({
       ...item,
-      metrics7d: item.metrics7d || { likes: 0, saves: 0, comments: 0 },
+      metrics7d: normalizeMetrics7d(item.metrics7d),
+      createdAt: pickCreatedAt(item),
+      updatedAt: pickUpdatedAt(item),
     }));
 
     if (isShowAll) {
-      return [...dataset].sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
+      return [...dataset].sort(
+        (a, b) =>
+          score7d(b.metrics7d, b.createdAt, b.updatedAt) -
+          score7d(a.metrics7d, a.createdAt, a.updatedAt)
+      );
     }
 
     const filtered = dataset.filter((project) => {
@@ -142,7 +148,11 @@ export default function ShowcasePage() {
       return selectedTopics.every((selectedTag) => tags.includes(selectedTag));
     });
 
-    return filtered.sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d));
+    return filtered.sort(
+      (a, b) =>
+        score7d(b.metrics7d, b.createdAt, b.updatedAt) -
+        score7d(a.metrics7d, a.createdAt, a.updatedAt)
+    );
   }, [selectedTopics, ALL_TOPICS.length, projects]);
 
   const PER_PAGE = 9;

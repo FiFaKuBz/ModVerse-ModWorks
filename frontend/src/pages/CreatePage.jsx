@@ -198,6 +198,7 @@ export default function CreatePage() {
       categories: form.categories,
       image: coverImage[0] || "",
       createdAt: now,
+      updatedAt: now,
       metrics7d: { likes: 0, saves: 0, comments: 0 },
       public: !!form.isPublic,
       comments: !!form.allowComments,
