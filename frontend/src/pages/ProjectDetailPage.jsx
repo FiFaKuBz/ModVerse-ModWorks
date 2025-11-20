@@ -176,8 +176,8 @@ const DetailColumn = ({
     </div>
     <div className="mb-6 h-px w-full max-w-[528px] bg-black/70" />
 
-    {detail.summary && (
-      <p className="font-IBM text-[16px] leading-[20px] mb-6 whitespace-pre-wrap">{detail.summary}</p>
+    {detail.topic && (
+      <p className="font-IBM text-[16px] leading-[20px] mb-6 whitespace-pre-wrap">{detail.topic}</p>
     )}
 
     <DetailSection text={detail.startPoint} images={detail.imagesBySection?.startPoint} />

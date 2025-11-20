@@ -133,7 +133,7 @@ export default function EditProjectPage() {
         const detail = project.detail || {};
         setForm({
           title: project.title || "",
-          topic: detail.summary || "",
+          topic: detail.topic || "",
           startPoint: detail.startPoint || "",
           goal: detail.goal || "",
           process: detail.process || "",
@@ -224,7 +224,7 @@ export default function EditProjectPage() {
       comments: !!form.allowComments,
       coauthors: form.coauthors,
       detail: {
-        summary: form.topic,
+        topic: form.topic,
         startPoint: form.startPoint,
         goal: form.goal,
         process: form.process,

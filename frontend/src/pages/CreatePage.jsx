@@ -203,7 +203,7 @@ export default function CreatePage() {
       comments: !!form.allowComments,
       coauthors: form.coauthors,
       detail: {
-        summary: form.topic,
+        topic: form.topic,
         startPoint: form.startPoint,
         goal: form.goal,
         process: form.process,
