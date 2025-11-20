@@ -1,6 +1,9 @@
 # backend/models/project.py
 from datetime import datetime, timezone
 from bson import ObjectId
+import base64
+import io
+from PIL import Image
 
 ALLOWED_SECTIONS = {"title","objective","goals","methods","outcomes","next_steps"}
 ALLOWED_ASSET_TYPES = {"image","pdf","video","audio","link"}
@@ -17,27 +20,68 @@ class ProjectModel:
         self.col.create_index([("visibility", 1), ("status", 1), ("created_at", -1)])
         print("✅ Indexes created successfully")
 
+    def _resize_image_base64(self, image_data):
+        """
+        รับ Base64 string -> ย่อให้ไม่เกิน 1920x1080 (Full HD) -> คืนค่า Base64 string (JPEG)
+        """
+        if not image_data or not isinstance(image_data, str) or "base64," not in image_data:
+            return image_data # ถ้าไม่ใช่ base64 ให้คืนค่าเดิม
+
+        try:
+            # 1. แยก Header (เช่น data:image/png;base64,) ออกจากข้อมูล
+            header, encoded = image_data.split("base64,", 1)
+            
+            # 2. ถอดรหัส Base64 เป็น bytes
+            img_bytes = base64.b64decode(encoded)
+            img = Image.open(io.BytesIO(img_bytes))
+
+            # 3. ย่อภาพ (Thumbnail จะรักษาสัดส่วนภาพ ไม่ให้เกินขนาดที่กำหนด)
+            img.thumbnail((1920, 1080))
+
+            # 4. แปลงเป็น RGB (เผื่อกรณีไฟล์ PNG มีพื้นหลังโปร่งใส แล้วจะเซฟเป็น JPEG)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            # 5. บันทึกลง Buffer ใหม่เป็น JPEG (Quality 85 กำลังดีสำหรับเว็บ)
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=85)
+            
+            # 6. เข้ารหัสกลับเป็น Base64
+            new_encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            
+            # คืนค่าพร้อม Header ใหม่เป็น JPEG
+            return f"data:image/jpeg;base64,{new_encoded}"
+
+        except Exception as e:
+            print(f"❌ Image resize failed: {e}")
+            return image_data # ถ้า error ให้ใช้ภาพต้นฉบับไปเลย
+
     def create(self, owner_id: ObjectId, payload: dict) -> ObjectId:
         print("\n--- ProjectModel.create() ---")
         print(f"Owner ID: {owner_id}")
         print(f"Payload: {payload}")
         
+        original_image = payload.get("image", "")
+        resized_image = self._resize_image_base64(original_image)
+        detail = payload.get("detail", {})
+
         now = datetime.now(timezone.utc)
         doc = {
             "owner_id": owner_id,
             "title": payload["title"].strip(),
-            "summary": payload.get("summary","").strip(),
-            "description": payload.get("description","").strip(),
-            "objective": payload.get("objective","").strip(),
-            "goals": payload.get("goals","").strip(),
-            "methods": payload.get("methods","").strip(),
-            "results": payload.get("results","").strip(),
-            "outcomes": payload.get("outcomes","").strip(),
-            "next_steps": payload.get("next_steps","").strip(),
-            "tags": [tag.strip() for tag in payload.get("tags", [])] if isinstance(payload.get("tags"), list) else [],
-            "visibility": payload.get("visibility","private"),
-            "status": payload.get("status","draft"),
-            "assets": [],
+            "image": resized_image,
+            "detail": {
+                "description": detail.get("summary", ""),
+                "startPoint": detail.get("startPoint", ""),
+                "goal": detail.get("goal", ""),
+                "process": detail.get("process", ""),
+                "result": detail.get("result", ""),
+                "takeaway": detail.get("takeaway", ""),
+                "nextStep": detail.get("nextStep", ""),
+            },
+            # "tags": [tag.strip() for tag in payload.get("tags", [])] if isinstance(payload.get("tags"), list) else [],
+            "visibility": payload.get("isPubilc"),
+            # "allow_comments": detail.get("")
             "metrics": {"views": 0, "likes": 0},
             "created_at": now,
             "updated_at": now,

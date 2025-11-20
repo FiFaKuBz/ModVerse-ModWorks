@@ -101,7 +101,7 @@ export default function CreatePage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    title: "",
+    title: "", 
     topic: "",
     startPoint: "",
     goal: "",
