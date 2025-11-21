@@ -94,6 +94,36 @@ def callback():
         print("DEBUG: ❌ Nonce Mismatch") # 👈 Added
         return "Invalid nonce", 400
     
+    # ตรวจสอบว่า User คนนี้มีอยู่แล้ว และปิด 2FA ไว้หรือไม่?
+    # ค้นหา User จาก google.sub ก่อน
+    user = user_model.users.find_one({"google.sub": google_info["sub"]})
+    
+    # ถ้ามี User และ twoFactorEnabled เป็น False (ปิดใช้งาน)
+    if user and user.get("twoFactorEnabled") is False:
+        # --- LOGIN DIRECTLY (ข้าม OTP) ---
+        user_doc = user_model.upsert_google_user(google_info)
+        
+        session["user"] = {
+            "id": str(user_doc["_id"]),
+            "name": user_doc.get("name"),
+            "email": user_doc.get("email"),
+            "picture": user_doc.get("avatar"), # ใช้ avatar ตามที่เราแก้ Model แล้ว
+            "role": user_doc.get("role", "user"),
+            "username": user_doc.get("username"),
+        }
+        
+        # เคลียร์ค่า OAuth
+        session.pop("oauth_state", None)
+        session.pop("oauth_nonce", None)
+        
+        # Redirect เข้าหน้า Showcase เลย
+        frontend_url = "http://127.0.0.1:5173"
+        return redirect(f"{frontend_url}/showcase")
+
+    # -------------------------------------------------
+    # ถ้าหาไม่เจอ (User ใหม่) หรือเปิด 2FA ไว้ -> ไปทำ OTP ตามเดิม
+    # -------------------------------------------------
+
     # บันทึกข้อมูล Google ใน session ชั่วคราว
     session["pending_google_info"] = google_info
 
@@ -153,6 +183,7 @@ def verify_otp():
         "email": user_doc.get("email"),
         "picture": user_doc.get("picture"),
         "role": user_doc.get("role", "user"),
+        "username": user_doc.get("username"),
     }
     
     # ลบข้อมูล pending

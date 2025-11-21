@@ -64,7 +64,8 @@ class ProjectModel:
                 "takeaway": detail.get("takeaway", ""),
                 "nextStep": detail.get("nextStep", ""),
             },
-            "categories": payload.get("categories", []), 
+            "tags": payload.get("tags", []), 
+            "contributor": payload.get("contributor", "Unknown"),
             "coauthors": payload.get("coauthors", []),
             
             "visibility": visibility_status, # ✅ บันทึกเป็น "public" หรือ "private"
@@ -89,11 +90,12 @@ class ProjectModel:
         return self.col.find_one({"_id": pid, "is_deleted": {"$ne": True}})
 
     def update(self, pid: ObjectId, patch: dict) -> bool:
-        # ✅ แก้ไข 2: เพิ่ม "topic" เข้าไปใน allowed fields ไม่งั้นจะแก้ไขไม่ได้
+
         allowed = {
             "title", "topic", "description", "objective", "goals", 
             "methods", "results", "outcomes", "next_steps", 
-            "categories", "tags", "visibility", "status", "detail"
+            "categories", "tags", "visibility", "status", "detail",
+            "image", "coauthors", "allow_comments"
         }
         
         # Logic การ update อาจต้องปรับเล็กน้อยถ้า frontend ส่งมาเป็น nested object (detail.topic)
@@ -101,6 +103,18 @@ class ProjectModel:
         patch = {k:v for k,v in (patch or {}).items() if k in allowed}
         
         if not patch: return False
+
+        if "image" in patch and patch["image"]:
+             patch["image"] = self._resize_image_base64(patch["image"])
+
+        patch["updated_at"] = datetime.now(timezone.utc)
+        
+        r = self.col.update_one(
+            {"_id": pid, "is_deleted": {"$ne": True}}, 
+            {"$set": patch}
+        )
+        return r.matched_count == 1
+
         patch["updated_at"] = datetime.now(timezone.utc)
         
         r = self.col.update_one({"_id": pid, "is_deleted": {"$ne": True}}, {"$set": patch})
