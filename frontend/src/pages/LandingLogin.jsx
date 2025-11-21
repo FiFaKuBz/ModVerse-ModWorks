@@ -50,7 +50,7 @@ useEffect(() => {
                 setBanner("Bypass successful! Redirecting...");
                 
                 // 3. THE REDIRECT STEP: Now runs within the effect's async chain
-                navigate("/showcase", { replace: true });
+                navigate("/", { replace: true });
 
             } catch (error) {
                 console.error("Full bypass failed:", error);
@@ -73,7 +73,7 @@ useEffect(() => {
 
   const handle2FASuccess = () => {
     login();
-    navigate("/showcase", { replace: true });
+    navigate("/", { replace: true });
   };
 
   const handleMaxFail = () => {

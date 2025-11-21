@@ -47,8 +47,8 @@ class ProjectModel:
 
         now = datetime.now(timezone.utc)
 
-        # ✅ แก้ไข 1: แปลง Boolean เป็น String เพื่อให้ตรงกับ list_public
-        is_public = payload.get("isPublic", True) # รับค่า boolean จาก frontend
+        # [FIX] Check both 'public' (Frontend) and 'isPublic' keys
+        is_public = payload.get("isPublic", True)
         visibility_status = "public" if is_public else "private"
 
         doc = {
@@ -56,7 +56,7 @@ class ProjectModel:
             "title": payload.get("title", "").strip(),
             "image": resized_image,
             "detail": {
-                "topic": detail.get("topic", ""), # ✅ ใช้ topic ตามที่ตกลงกับ Front
+                "topic": detail.get("topic", ""),
                 "startPoint": detail.get("startPoint", ""),
                 "goal": detail.get("goal", ""),
                 "process": detail.get("process", ""),
@@ -64,12 +64,13 @@ class ProjectModel:
                 "takeaway": detail.get("takeaway", ""),
                 "nextStep": detail.get("nextStep", ""),
             },
-            "tags": payload.get("tags", []), 
+            "tags": payload.get("tags", []),
+            # "categories": payload.get("categories", []),
             "contributor": payload.get("contributor", "Unknown"),
             "coauthors": payload.get("coauthors", []),
             
-            "visibility": visibility_status, # ✅ บันทึกเป็น "public" หรือ "private"
-            "allow_comments": payload.get("comments", True), # รับ key "comments" จาก payload
+            "visibility": visibility_status,
+            "allow_comments": payload.get("comments", True),
 
             "metrics": {"views": 0, "likes": 0},
             "created_at": now,
@@ -91,6 +92,17 @@ class ProjectModel:
 
     def update(self, pid: ObjectId, patch: dict) -> bool:
 
+        if "public" in patch:
+            patch["visibility"] = "public" if patch["public"] else "private"
+            del patch["public"] # Remove boolean key before saving
+        elif "isPublic" in patch:
+            patch["visibility"] = "public" if patch["isPublic"] else "private"
+            del patch["isPublic"]
+
+        if "comments" in patch:
+            patch["allow_comments"] = patch["comments"]
+            del patch["comments"]
+
         allowed = {
             "title", "topic", "description", "objective", "goals", 
             "methods", "results", "outcomes", "next_steps", 
@@ -98,26 +110,20 @@ class ProjectModel:
             "image", "coauthors", "allow_comments"
         }
         
-        # Logic การ update อาจต้องปรับเล็กน้อยถ้า frontend ส่งมาเป็น nested object (detail.topic)
-        # แต่เบื้องต้นถ้าส่งมาแบบ flat ให้กรองตาม allowed
-        patch = {k:v for k,v in (patch or {}).items() if k in allowed}
+        # Filter only allowed fields
+        clean_patch = {k:v for k,v in (patch or {}).items() if k in allowed}
         
-        if not patch: return False
+        if not clean_patch: return False
 
-        if "image" in patch and patch["image"]:
-             patch["image"] = self._resize_image_base64(patch["image"])
+        if "image" in clean_patch and clean_patch["image"]:
+            clean_patch["image"] = self._resize_image_base64(clean_patch["image"])
 
-        patch["updated_at"] = datetime.now(timezone.utc)
+        clean_patch["updated_at"] = datetime.now(timezone.utc)
         
         r = self.col.update_one(
             {"_id": pid, "is_deleted": {"$ne": True}}, 
-            {"$set": patch}
+            {"$set": clean_patch}
         )
-        return r.matched_count == 1
-
-        patch["updated_at"] = datetime.now(timezone.utc)
-        
-        r = self.col.update_one({"_id": pid, "is_deleted": {"$ne": True}}, {"$set": patch})
         return r.matched_count == 1
 
     def soft_delete(self, pid: ObjectId) -> bool:
@@ -131,7 +137,6 @@ class ProjectModel:
         return list(self.col.find(filt).sort("updated_at", -1))
 
     def list_public(self, q: str | None = None, status: str | None = None):
-        # ✅ ตรงนี้ถูกต้องแล้ว (หาคำว่า "public") ซึ่งจะ match กับ create ที่แก้แล้ว
         filt = {"visibility": "public", "is_deleted": {"$ne": True}}
         if q: 
             filt["title"] = {"$regex": q, "$options": "i"}

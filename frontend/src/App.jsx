@@ -20,13 +20,12 @@ function App() {
     <>
       <Routes>
         {/* Public */}
-        <Route path="/" element={<LandingLogin />} />
+        <Route path="/login" element={<LandingLogin />} />
         <Route path="/landing-about" element={<LandingAboutPage />} />
-        <Route path="landing-about" element={<LandingAboutPage />} />
         
         {/* Everything under this gate requires a live session */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/showcase" element={<ShowcasePage />} />
+          <Route path="/" element={<ShowcasePage />} />
           <Route path="/project/:id" element={<ProjectDetailPage />} />
           <Route path="/create" element={<CreatePage />} />
           <Route path="/edit-project/:id" element={<EditProjectPage />} />
