@@ -224,7 +224,7 @@ export default function EditProjectPage() {
       comments: !!form.allowComments,
       coauthors: form.coauthors,
       detail: {
-        summary: form.topic,
+        topic: form.topic,
         startPoint: form.startPoint,
         goal: form.goal,
         process: form.process,
