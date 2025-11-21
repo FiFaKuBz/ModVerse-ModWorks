@@ -116,10 +116,8 @@ def callback():
     session.pop("oauth_nonce", None)
     
     #  ✅ ส่ง response กลับไปให้ frontend รู้ว่าต้องไป 2FA
-    return jsonify({
-        "need2fa": True,
-        "email": email
-    }), 200
+    frontend_url = "http://127.0.0.1:5173"
+    return redirect(f"{frontend_url}/?auth=ok")
 
 
 @auth_bp.route("/verify-otp", methods=["POST"])
