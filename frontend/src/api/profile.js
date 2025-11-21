@@ -16,7 +16,7 @@ const slugify = (value = "") =>
 
 const defaultProfile = () => ({
     avatar: "",
-    username: "Username",
+    username: "default-user",
     email: "Email@gmail.com",
     about: "description",
     followers: 0,

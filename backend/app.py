@@ -22,14 +22,14 @@ from .routes.search_routes import search_bp
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
-LOCAL_ORIGINS = "http://localhost:5173"
-PRODUCTION_ORIGINS = "http://localhost:3000"
+LOCAL_ORIGINS = "http://127.0.0.1:5173"
+PRODUCTION_ORIGINS = "http://127.0.0.1:3000"
 
 # CORS Configuration
 # ✅ เพิ่ม LOCAL_ORIGINS เข้าไปใน list เพื่อให้ Frontend (5173) เชื่อมต่อได้
 CORS(app, 
      supports_credentials=True,
-     origins=[PRODUCTION_ORIGINS, LOCAL_ORIGINS, "http://localhost:5000","http://127.0.0.1:5173"], 
+     origins=[PRODUCTION_ORIGINS, LOCAL_ORIGINS, "http://127.0.0.1:5000"], 
      allow_headers=["Content-Type", "Authorization", "Cookie"],
      expose_headers=["Set-Cookie"])
 

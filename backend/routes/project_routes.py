@@ -47,6 +47,10 @@ def create_project():
         user_id = ObjectId(user_id_str)
         
         data = request.get_json()
+
+        if "user" in session:
+            data["contributor"] = session["user"].get("username") or session["user"].get("name")
+
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
@@ -131,10 +135,8 @@ def get_project(project_id):
         project["_id"] = str(project["_id"])
         project["owner_id"] = str(project["owner_id"])
         
-        return jsonify({
-            "success": True,
-            "project": project
-        }), 200
+        return jsonify(project), 200
+    
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
     except Exception as e:

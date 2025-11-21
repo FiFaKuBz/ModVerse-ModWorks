@@ -435,9 +435,9 @@ export default function ProjectDetailPage() {
     if (!text) return;
     
     const newComment = {
-        author: LOGGED_IN_USER_MOCK.author,
+        author: contributorName,
         text: text,
-        avatarColor: LOGGED_IN_USER_MOCK.avatarColor,
+        avatarColor: primaryBg,
         reaction: activeEmote, 
     };
 

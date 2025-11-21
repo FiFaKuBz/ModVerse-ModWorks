@@ -36,35 +36,43 @@ def dashboard():
     """หน้า dashboard สำหรับผู้ใช้ที่ล็อกอินแล้ว"""
     return f"ยินดีต้อนรับ {session['user']['name']}!"
 
-@user_bp.route("/api/profile/update", methods=["PUT"])
+@user_bp.route("/profile/update", methods=["PUT"])
 @role_required()
 def update_profile():
-    """อัพเดทข้อมูลโปรไฟล์ของผู้ใช้ รวมถึง tags"""
     try:
         user_id = ObjectId(session["user"]["id"])
         data = request.get_json()
         
-        # รับ tags จาก request (ถ้ามี)
-        tags: Optional[List[str]] = data.get("tags")
-        if tags is not None:
-            # ทำความสะอาด tags
-            tags = list(set(tag.strip().lower() for tag in tags if tag.strip()))
-        
-        # สร้าง update document
         update_data = {}
-        allowed_fields = ["name", "bio", "picture", "tags"]
+        # ✅ EDIT: ใช้ชื่อ field ตาม Frontend ได้เลย (avatar, about)
+        # Model เรารองรับชื่อ avatar และ about แล้ว
+        allowed_fields = ["name", "username", "about", "avatar", "tags", "twoFactorEnabled"]
+        
         for field in allowed_fields:
             if field in data:
-                update_data[field] = data[field]
+                # จัดการ Tags นิดหน่อยเหมือนเดิม
+                if field == "tags":
+                    update_data[field] = list(set(tag.strip().lower() for tag in data[field] if tag.strip()))
+                else:
+                    update_data[field] = data[field]
         
         if not update_data:
-            return jsonify({
-                "ok": False,
-                "error": {
-                    "code": "no_fields",
-                    "message": "No valid fields to update"
-                }
-            }), 400
+            return jsonify({"ok": False, "error": "No valid fields"}), 400
+        
+        # เรียกใช้ update_user ใน Model
+        success = user_model.update_user(user_id, update_data)
+        
+        if success:
+            # ดึงข้อมูลล่าสุดมาส่งกลับ
+            updated_user = user_model.get_user_by_id(user_id)
+            
+            # ไม่ต้องแปลง Key แล้ว ส่ง updated_user กลับไปได้เลย (Model จัดการ _id เป็น string ให้แล้ว)
+            return jsonify({"ok": True, "user": updated_user})
+            
+        return jsonify({"ok": False, "error": "Update failed"}), 500
+        
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
         
         # อัพเดทในฐานข้อมูล
         success = user_model.update_user(user_id, update_data)
@@ -92,6 +100,26 @@ def update_profile():
                 "message": str(e)
             }
         }), 500
+    
+@user_bp.route("/<username>", methods=["GET"])
+def get_public_profile(username):
+    """
+    ดึงข้อมูลโปรไฟล์สาธารณะของผู้ใช้ (Public Profile)
+    ใช้สำหรับดูโปรไฟล์คนอื่น หรือค้นหาเพื่อเพิ่ม Co-author
+    """
+    # ค้นหา User จาก Model ที่เราเพิ่งเพิ่ม
+    user = user_model.get_user_by_username(username)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # แปลง ObjectId เป็น String ก่อนส่งกลับ
+    if "_id" in user:
+        user["_id"] = str(user["_id"])
+        
+
+    return jsonify(user), 200
+
 # --- NEW: ADMIN-ONLY ROUTE FOR RBAC DEMO ---
 @user_bp.route("/admin_panel")
 @role_required(allowed_roles="admin") # <<< RBAC ENFORCEMENT
