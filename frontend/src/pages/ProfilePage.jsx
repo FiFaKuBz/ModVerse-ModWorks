@@ -172,7 +172,7 @@ export default function ProfilePage() {
     return () => {
       canceled = true;
     };
-  }, [profileUsername]);
+  }, [profileUsername, profile]);
 
   // Dataset by tab
   const list = activeTab === "Saved" ? savedProjects : projects;

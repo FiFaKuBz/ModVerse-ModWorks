@@ -132,7 +132,7 @@ export default function OtherProfilePage() {
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [username, profile?.showSavedPublicly]);
 
   const createdProjects = useMemo(() => {
     if (!username) return SAMPLE_OTHER_CREATED;
