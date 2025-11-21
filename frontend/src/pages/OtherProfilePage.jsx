@@ -213,7 +213,7 @@ export default function OtherProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, idx) => (
-                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} />
+                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} isOwner={false} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">

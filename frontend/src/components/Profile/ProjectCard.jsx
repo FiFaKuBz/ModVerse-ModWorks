@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { getTopicChipClass } from "../../constants/topicColors";
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, isOwner = false }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
     if (project?.id) {
-      navigate(`/project/${project.id}`, { state: { project } });
+      navigate(`/project/${project.id}`, { state: { project, isOwner } });
     }
   };
 

@@ -260,7 +260,7 @@ const Sidebar = ({ recommended }) => (
       <h3 className="font-At text-[20px] font-semibold leading-[20px] mb-4">ดูงานอื่น ๆ ที่คล้ายกัน</h3>
       <div className="flex flex-col items-center gap-6">
         {recommended.map((item) => (
-          <ProjectCard key={item.id} project={item} />
+          <ProjectCard key={item.id} project={item} isOwner={false} />
         ))}
       </div>
     </div>

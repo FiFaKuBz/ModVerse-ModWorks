@@ -192,7 +192,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, i) => (
-                <ProjectCard key={project.id || `${project.title}-${i}`} project={project} />
+                <ProjectCard key={project.id || `${project.title}-${i}`} project={project} isOwner />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">
