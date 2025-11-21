@@ -4,9 +4,17 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
-import { getProject, listProjects } from "../api/projects";
+import { getProject, listProjects, addComment, getComments } from "../api/projects";
+import { useSession } from "../session/SessionContext";
 import { getTopicDetailBg } from "../constants/topicColors";
 import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
+import thumbsUpIcon from "../assets/ThumbsUp-icon.svg";
+import thumbsDownIcon from "../assets/ThumbsDown-icon.svg";
+
+const EMOTES = [
+  { name: "like", icon: thumbsUpIcon, alt: "Like" },
+  { name: "dislike", icon: thumbsDownIcon, alt: "Dislike" },
+];
 
 const FALLBACK_RECOMMENDATIONS = [
   // {
@@ -114,21 +122,96 @@ const DetailSection = ({ text, images }) => {
   );
 };
 
-const CommentPanel = () => (
-  <div className="w-full rounded-2xl bg-white p-5 text-sm text-neutral-600 shadow-sm xl:h-[184px] xl:w-[320px]">
-    <h3 className="font-At text-[20px] font-semibold leading-[20px] mb-3">อยากพูดคุย ชื่นชม หรือแนะนำ?</h3>
-    <div className="flex items-center gap-3 text-lg text-neutral-500 mb-4">
-      <span role="img" aria-label="like">👍</span>
-      <span role="img" aria-label="dislike">👎</span>
-      <span role="img" aria-label="celebrate">🎉</span>
-      <span role="img" aria-label="question">❓</span>
-      <span role="img" aria-label="idea">💡</span>
+// Comment Input Box
+const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit }) => (
+  <div className="mt-10 w-full rounded-2xl border border-[#D35400] bg-white p-6 text-sm text-neutral-600">
+    <h3 className="font-At text-[20px] font-bold leading-[20px] mb-4 text-black">
+      อยากพูดคุย ชื่นชม หรือแนะนำ?
+    </h3>
+    <div className="relative mb-3">
+      <textarea 
+        placeholder="เขียนสิ่งที่อยากบอกตรงนี้ได้เลย!"
+        value={commentText} // ✅ ADDED: Controlled input value
+        onChange={(e) => onCommentChange(e.target.value)} // ✅ ADDED: Change handler
+        className="w-full h-[120px] rounded-xl border border-[#D35400] p-4 text-sm outline-none resize-none placeholder-gray-400 text-black focus:ring-1 focus:ring-[#D35400]"
+      />
     </div>
-    <div className="rounded-md border border-neutral-300 px-3 py-4 text-[10px] font-IBM text-neutral-500">
-      พื้นที่คอมเมนต์จะพัฒนาโดยทีมคอมเมนต์ในภายหลัง
+
+    <div className="flex justify-end">
+      <button 
+        onClick={onCommentSubmit} // ✅ ADDED: Submit handler
+        disabled={!commentText.trim()} // ✅ ADDED: Disable if empty
+        className={`font-An font-semibold text-base rounded-full px-8 py-2 transition active:scale-95 shadow-sm
+          ${!commentText.trim() 
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+            : "bg-[#D35400] text-white hover:brightness-110"
+          }`
+        }
+      >
+        ส่ง
+      </button>
     </div>
   </div>
 );
+
+// Component: Display previous comments
+const PreviousComments = ({ comments, onReact, currentUserId }) => {
+    return (
+      <div className="mt-8 w-full space-y-6">
+          {/* ✅ CHANGED: Added .reverse() to show newest first */}
+          {[...comments].reverse().map((comment, index) => {
+              // ✅ ADDED: Check if current user's ID is in the likes/dislikes arrays from DB
+              const isLiked = comment.likes?.includes(currentUserId);
+              const isDisliked = comment.dislikes?.includes(currentUserId);
+
+              return (
+                  <div key={comment.id || index} className="flex gap-4"> {/* ✅ CHANGED: Prefer comment.id as key */}
+                      <div className="w-[56px] h-[56px] rounded-full flex-shrink-0 bg-neutral-200 overflow-hidden">
+                        {/* ✅ ADDED: Real avatar rendering */}
+                        {comment.avatar ? <img src={comment.avatar} className="w-full h-full object-cover"/> : null}
+                      </div>
+                      
+                      <div className="flex-1 pt-1">
+                        <div className="font-bold text-black text-lg font-At leading-tight">{comment.author}</div>
+                        <p className="text-black font-IBM text-sm mt-1 whitespace-pre-wrap">
+                          {comment.text}
+                        </p>
+
+                        <div className="mt-2 inline-flex items-center gap-4">
+                          {/* Like Button */}
+                          <button 
+                              // ✅ CHANGED: Calls parent `onReact` instead of local handler
+                              onClick={() => onReact(comment.id, 'like')}
+                              // ✅ CHANGED: Styles based on `isLiked` derived from prop
+                              className={`flex items-center gap-1 text-sm transition ${isLiked ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-100'}`}
+                              title="Like"
+                          >
+                              <img src={thumbsUpIcon} alt="👍" className="h-4 w-auto cursor-pointer" />
+                              {/* ✅ ADDED: Count display */}
+                              <span className="text-xs">{comment.likes?.length || 0}</span>
+                          </button>
+                          
+                          {/* Dislike Button */}
+                          <button 
+                              // ✅ CHANGED: Calls parent `onReact`
+                              onClick={() => onReact(comment.id, 'dislike')}
+                              // ✅ CHANGED: Styles based on `isDisliked` derived from prop
+                              className={`flex items-center gap-1 text-sm transition ${isDisliked ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-100'}`}
+                              title="Dislike"
+                          >
+                              <img src={thumbsDownIcon} alt="👎" className="h-4 w-auto cursor-pointer" /> 
+                              {/* ✅ ADDED: Count display */}
+                              <span className="text-xs">{comment.dislikes?.length || 0}</span>
+                          </button>
+                        </div>
+                      </div>
+                  </div>
+              );
+          })} 
+      </div>
+    );
+};
+
 
 const DetailColumn = ({
   project,
@@ -141,6 +224,14 @@ const DetailColumn = ({
   coauthors,
   showCoauthors,
   setShowCoauthors,
+  // Props for comment functionality
+  commentText,
+  onCommentChange, 
+  onCommentSubmit,
+  commentsList,
+  // Pass Emote state/handler down
+  activeEmote,
+  onEmoteClick,
 }) => (
   <article className="w-full rounded-2xl bg-white p-6 shadow-lg xl:w-[781px] xl:p-8">
     <h1 className="font-At text-[40px] leading-[45px] font-bold mb-4">{project.title}</h1>
@@ -250,12 +341,21 @@ const DetailColumn = ({
         )}
       </div>
     </div>
+
+    <CommentPanel 
+      commentText={commentText} 
+      onCommentChange={onCommentChange} 
+      onCommentSubmit={onCommentSubmit} 
+      activeEmote={activeEmote}
+      onEmoteClick={onEmoteClick}
+    />
+    <PreviousComments comments={commentsList} />
   </article>
 );
 
+
 const Sidebar = ({ recommended }) => (
   <aside className="flex w-full flex-col items-center gap-6">
-    <CommentPanel />
     <div className="w-full rounded-2xl bg-white p-5 shadow-sm">
       <h3 className="font-At text-[20px] font-semibold leading-[20px] mb-4">ดูงานอื่น ๆ ที่คล้ายกัน</h3>
       <div className="flex flex-col items-center gap-6">
@@ -266,15 +366,63 @@ const Sidebar = ({ recommended }) => (
     </div>
   </aside>
 );
+
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const location = useLocation();
+  const { expiresAt } = useSession();
   const navigate = useNavigate();
   const [showCoauthors, setShowCoauthors] = useState(false);
   const [project, setProject] = useState(location.state?.project || null);
   const [loading, setLoading] = useState(!location.state?.project);
   const [notFound, setNotFound] = useState(false);
   const [catalog, setCatalog] = useState([]);
+  
+  // === Comment State ===
+  const [newCommentText, setNewCommentText] = useState("");
+  const [commentsList, setCommentsList] = useState([]); 
+  const [activeEmote, setActiveEmote] = useState(null);
+
+  const handleEmoteClick = (emoteName) => {
+    // Toggle the active emote for the input box
+    setActiveEmote(prev => prev === emoteName ? null : emoteName);
+  };
+
+// Load comments when project loads
+  useEffect(() => {
+    if (!id) return;
+    const loadComments = async () => {
+        const data = await getComments(id);
+        setCommentsList(data);
+    };
+    loadComments();
+  }, [id]);
+
+  const handleCommentSubmit = async () => {
+    const text = newCommentText.trim();
+    if (!text) return;
+    
+    // Optimistic Update (Optional: Show immediately) or Wait for server
+    if (!expiresAt) {
+        alert("Please login to comment");
+        return;
+    }
+
+    try {
+        // Call API
+        const newComment = await addComment(id, text);
+        
+        if (newComment) {
+            setCommentsList(prev => [...prev, newComment]);
+            setNewCommentText("");
+            setActiveEmote(null);
+        }
+    } catch {
+        alert("Failed to post comment");
+    }
+  };
+  // =====================
+
 
   useEffect(() => {
     let canceled = false;
@@ -297,8 +445,6 @@ export default function ProjectDetailPage() {
         }
         setNotFound(false);
         setProject(fetched);
-      } catch {
-        if (!canceled) setNotFound(true);
       } finally {
         if (!canceled) setLoading(false);
       }
@@ -329,6 +475,8 @@ export default function ProjectDetailPage() {
     };
   }, []);
 
+  
+
   const detail = project?.detail || {};
   const created = project?.createdAt ? new Date(project.createdAt) : null;
   const formattedDate = created
@@ -347,9 +495,7 @@ export default function ProjectDetailPage() {
   }, [coauthors.length]);
   const recommended = useMemo(() => {
     if (!project) return FALLBACK_RECOMMENDATIONS;
-    return pickRecommendedProjects(project.id, project.tags || [], catalog).filter(
-      (item) => item.id !== project.id
-    );
+    return pickRecommendedProjects(project.id, project.tags || [], catalog);
   }, [project, catalog]);
 
   const topicOrder =
@@ -358,9 +504,7 @@ export default function ProjectDetailPage() {
       : project?.tags) || [];
   const primaryTag = topicOrder[0] || null;
   const primaryBg = getTopicDetailBg(primaryTag) || "#D3C2CD";
-  const isOwner = Boolean(
-    location.state?.isOwner ?? project?.isOwner ?? project?.contributor === "You"
-  );
+  const isOwner = useMemo(() => id?.startsWith("u-"), [id]);
 
   if (loading && !project) {
     return (
@@ -410,6 +554,14 @@ export default function ProjectDetailPage() {
               coauthors={coauthors}
               showCoauthors={showCoauthors}
               setShowCoauthors={setShowCoauthors}
+              // Pass comment state and handlers
+              commentText={newCommentText}
+              onCommentChange={setNewCommentText}
+              onCommentSubmit={handleCommentSubmit}
+              commentsList={commentsList}
+              // Pass Emote state/handler down
+              activeEmote={activeEmote}
+              onEmoteClick={handleEmoteClick}
             />
           </div>
 
@@ -421,8 +573,3 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
-
-
-
-
-

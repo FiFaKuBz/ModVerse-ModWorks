@@ -35,33 +35,33 @@ const normalizeCoauthors = (list = []) =>
     .filter(Boolean);
 
 const SAMPLE_OTHER_CREATED = [
-  {
-    id: "other-data-viz",
-    title: "Data Visualization Hub",
-    contributor: "Lara Cooper",
-    tags: ["UX/UI", "Database"],
-    image:
-      "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "other-urban-mobility",
-    title: "Urban Mobility Planner",
-    contributor: "Lara Cooper",
-    tags: ["Transportation", "UX/UI"],
-    image:
-      "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
-  },
+  // {
+  //   id: "other-data-viz",
+  //   title: "Data Visualization Hub",
+  //   contributor: "Lara Cooper",
+  //   tags: ["UX/UI", "Database"],
+  //   image:
+  //     "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
+  // },
+  // {
+  //   id: "other-urban-mobility",
+  //   title: "Urban Mobility Planner",
+  //   contributor: "Lara Cooper",
+  //   tags: ["Transportation", "UX/UI"],
+  //   image:
+  //     "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
+  // },
 ];
 
 const SAMPLE_OTHER_SAVED = [
-  {
-    id: "other-ai-diagnostic",
-    title: "AI Diagnostic Assistant",
-    contributor: "Noah",
-    tags: ["Algorithm", "Digital Circuit"],
-    image:
-      "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
-  },
+  // {
+  //   id: "other-ai-diagnostic",
+  //   title: "AI Diagnostic Assistant",
+  //   contributor: "Noah",
+  //   tags: ["Algorithm", "Digital Circuit"],
+  //   image:
+  //     "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
+  // },
 ];
 
 export default function OtherProfilePage() {

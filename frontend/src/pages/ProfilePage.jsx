@@ -35,21 +35,21 @@ const normalizeCoauthors = (list = []) =>
     .filter(Boolean);
 
 const SAMPLE_CREATED = [
-  { id: "demo-ui-system", title: "UI System", contributor: "Jane", tags: ["UX/UI", "Database"], image: "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80" },
-  { id: "demo-cloud-engine", title: "Cloud Engine", contributor: "John", tags: ["Algorithm", "Database"], image: "" },
-  { id: "demo-smart-car", title: "Smart Car", contributor: "Alex", tags: ["Transportation", "Digital Circuit"], image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80" },
-  { id: "demo-circuit-analyzer", title: "Circuit Analyzer", contributor: "Mia", tags: ["Digital Circuit", "Algorithm"], image: "https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&w=800&q=80" },
-  { id: "demo-urban-mobility", title: "Urban Mobility Planner", contributor: "Liam", tags: ["Transportation", "UX/UI"], image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg" },
-  { id: "demo-data-viz", title: "Data Visualization Hub", contributor: "Ella", tags: ["Database", "UX/UI"], image: "https://editor.analyticsvidhya.com/uploads/805881.1.png" },
-  { id: "demo-edge-mapper", title: "Edge Mapper", contributor: "Kai", tags: ["Algorithm"], image: "" },
-  { id: "demo-city-twins", title: "City Twins", contributor: "May", tags: ["UX/UI"], image: "" },
-  { id: "demo-path-planner", title: "Path Planner", contributor: "Neo", tags: ["Transportation"], image: "" },
-  { id: "demo-sensor-fusion", title: "Sensor Fusion", contributor: "Ivy", tags: ["Digital Circuit"], image: "" },
+  // { id: "demo-ui-system", title: "UI System", contributor: "Jane", tags: ["UX/UI", "Database"], image: "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80" },
+  // { id: "demo-cloud-engine", title: "Cloud Engine", contributor: "John", tags: ["Algorithm", "Database"], image: "" },
+  // { id: "demo-smart-car", title: "Smart Car", contributor: "Alex", tags: ["Transportation", "Digital Circuit"], image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=800&q=80" },
+  // { id: "demo-circuit-analyzer", title: "Circuit Analyzer", contributor: "Mia", tags: ["Digital Circuit", "Algorithm"], image: "https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&w=800&q=80" },
+  // { id: "demo-urban-mobility", title: "Urban Mobility Planner", contributor: "Liam", tags: ["Transportation", "UX/UI"], image: "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg" },
+  // { id: "demo-data-viz", title: "Data Visualization Hub", contributor: "Ella", tags: ["Database", "UX/UI"], image: "https://editor.analyticsvidhya.com/uploads/805881.1.png" },
+  // { id: "demo-edge-mapper", title: "Edge Mapper", contributor: "Kai", tags: ["Algorithm"], image: "" },
+  // { id: "demo-city-twins", title: "City Twins", contributor: "May", tags: ["UX/UI"], image: "" },
+  // { id: "demo-path-planner", title: "Path Planner", contributor: "Neo", tags: ["Transportation"], image: "" },
+  // { id: "demo-sensor-fusion", title: "Sensor Fusion", contributor: "Ivy", tags: ["Digital Circuit"], image: "" },
 ];
 
 const SAMPLE_SAVED = [
-  { id: "demo-ai-diagnostic", title: "AI Diagnostic Assistant", contributor: "Noah", tags: ["Algorithm", "Digital Circuit"], image: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80" },
-  { id: "demo-smart-traffic", title: "Smart Traffic Dashboard", contributor: "Ava", tags: ["Transportation", "Database", "UX/UI"], image: "https://optraffic.com/wp-content/uploads/2024/06/Traffic-Congestion-1200-900-1024x768.jpg" },
+  // { id: "demo-ai-diagnostic", title: "AI Diagnostic Assistant", contributor: "Noah", tags: ["Algorithm", "Digital Circuit"], image: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80" },
+  // { id: "demo-smart-traffic", title: "Smart Traffic Dashboard", contributor: "Ava", tags: ["Transportation", "Database", "UX/UI"], image: "https://optraffic.com/wp-content/uploads/2024/06/Traffic-Congestion-1200-900-1024x768.jpg" },
 ];
 
 const FALLBACK_PROFILE = {

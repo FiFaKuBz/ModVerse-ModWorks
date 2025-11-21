@@ -18,8 +18,8 @@ export default function LandingHeader({
   const menuRef = useRef(null);
 
   const isLogin =
-    variant === "login" || location.pathname === "/" || location.pathname === "/landing";
-  const isShowcase = location.pathname.startsWith("/showcase");
+    variant === "login" || location.pathname === "/login" || location.pathname === "/landing";
+  const isShowcase = location.pathname.startsWith("/");
 
   const trayTopics = useMemo(() => {
     const uniq = Array.from(new Set(topics)).filter((t) => t !== "all");
@@ -68,7 +68,7 @@ export default function LandingHeader({
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <button
-          onClick={() => navigate("/showcase")}
+          onClick={() => navigate("/")}
           className="flex-shrink-0 flex items-center"
           aria-label="Go to Showcase"
         >

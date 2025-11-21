@@ -37,7 +37,8 @@ const mapProject = (p = {}) => {
     const ownerId = p.ownerId || p.owner_id;
     const createdAt = p.createdAt || p.created_at || p.created;
     const updatedAt = p.updatedAt || p.updated_at || p.updated;
-    const metrics7d = p.metrics7d && typeof p.metrics7d === "object" ? p.metrics7d : {};
+    const metrics7d =
+        p.metrics7d && typeof p.metrics7d === "object" ? p.metrics7d : {};
     return {
         ...p,
         ...(id ? { id } : {}),
@@ -70,12 +71,16 @@ export async function listProjects() {
 export async function getProject(id) {
     try {
         const remote = await request(`/${id}`, { method: "GET" });
-        if (remote?.project) return mapProject(remote.project);
+        if (remote ?.project) return mapProject(remote.project);
         if (remote) return mapProject(remote);
     } catch {
         // fallback below
     }
-    return readLocalProjects().map(mapProject).find((p) => p.id === id) || null;
+    return (
+        readLocalProjects()
+        .map(mapProject)
+        .find((p) => p.id === id) || null
+    );
 }
 
 const generateLocalId = () => `u-${Date.now()}`;
@@ -87,7 +92,7 @@ export async function createProject(project) {
             method: "POST",
             body: JSON.stringify(project),
         });
-        if (created?.project) return mapProject(created.project);
+        if (created ?.project) return mapProject(created.project);
         if (created) return mapProject(created);
     } catch {
         // fall through to local storage
@@ -117,4 +122,52 @@ export async function updateProject(id, updates) {
     list[index] = merged;
     writeLocalProjects(list);
     return merged;
+}
+
+// POST /api/projects/:id/comments
+export async function addComment(projectId, text) {
+    try {
+        const res = await request(`/${projectId}/comments`, {
+            method: "POST",
+            body: JSON.stringify({ text }),
+        });
+        return res.comment;
+    } catch (e) {
+        console.error("Failed to add comment", e);
+        return null;
+    }
+}
+
+// GET /api/projects/:id/comments
+export async function getComments(projectId) {
+    try {
+        const res = await request(`/${projectId}/comments`, { method: "GET" });
+        return ensureArray(res.comments);
+    } catch {
+        return [];
+    }
+}
+
+// POST /api/projects/:id/interact
+export async function interactProject(id, action) {
+    // action = 'like' | 'dislike'
+    try {
+        const res = await request(`/${id}/interact`, {
+            method: "POST",
+            body: JSON.stringify({ action }),
+        });
+        return res.data; // Returns { likes: n, dislikes: n, isLiked: bool, isDisliked: bool }
+    } catch {
+        return null;
+    }
+}
+
+// POST /api/projects/:id/save
+export async function toggleSaveProject(id) {
+    try {
+        const res = await request(`/${id}/save`, { method: "POST" });
+        return res.isSaved;
+    } catch {
+        return false;
+    }
 }
