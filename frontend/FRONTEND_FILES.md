@@ -82,7 +82,7 @@ SVG icons live under `frontend/asset/`. Import them in components when you need 
 - Shared helpers you’ll see often:
   - `slugify` – Turns names into slugs for URLs.
   - `normalizeCoauthors` – Makes sure co-author data is `{ name, slug }`.
-  - `score7d` – Ranks projects for recommendations (likes + saves ×2 + comments ×3).
+  - `score7d` – Ranks projects with a recency bonus (<60d first), tiny updated-at nudge, and engagement weighting (saves/comments > likes).
 - External libraries:
   - React + React Router (hooks, `<BrowserRouter>`, `<Routes>`, etc.).
   - Vite (`npm run dev`).

@@ -6,6 +6,7 @@ import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
 import { getProject, listProjects } from "../api/projects";
 import { getTopicDetailBg } from "../constants/topicColors";
+import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
 
 const FALLBACK_RECOMMENDATIONS = [
   // {
@@ -34,16 +35,6 @@ const FALLBACK_RECOMMENDATIONS = [
   // },
 ];
 
-const LOGGED_IN_USER_MOCK = {
-    author: "You", 
-    avatarColor: "#D8560E",
-};
-
-const score7d = (metrics = {}) => {
-  const { likes = 0, saves = 0, comments = 0 } = metrics;
-  return likes + saves * 2 + comments * 3;
-};
-
 const slugify = (value = "") =>
   value
     .toLowerCase()
@@ -70,12 +61,29 @@ const pickRecommendedProjects = (currentId, tags = [], source = []) => {
   const dataset = Array.isArray(source)
     ? source.filter((p) => (p?.public ?? true) && p?.id !== currentId)
     : [];
-  const pool = [...dataset, ...FALLBACK_RECOMMENDATIONS];
+  const pool = [...dataset, ...FALLBACK_RECOMMENDATIONS].map((item) => ({
+    ...item,
+    metrics7d: normalizeMetrics7d(item.metrics7d),
+    createdAt: pickCreatedAt(item),
+    updatedAt: pickUpdatedAt(item),
+  }));
   const sharesTag = (item) => item.tags?.some((tag) => tags?.includes(tag));
 
   const ordered = [
-    ...pool.filter(sharesTag).sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d)),
-    ...pool.filter((item) => !sharesTag(item)).sort((a, b) => score7d(b.metrics7d) - score7d(a.metrics7d)),
+    ...pool
+      .filter(sharesTag)
+      .sort(
+        (a, b) =>
+          score7d(b.metrics7d, b.createdAt, b.updatedAt) -
+          score7d(a.metrics7d, a.createdAt, a.updatedAt)
+      ),
+    ...pool
+      .filter((item) => !sharesTag(item))
+      .sort(
+        (a, b) =>
+          score7d(b.metrics7d, b.createdAt, b.updatedAt) -
+          score7d(a.metrics7d, a.createdAt, a.updatedAt)
+      ),
   ];
 
   const unique = [];
@@ -308,8 +316,8 @@ const DetailColumn = ({
     </div>
     <div className="mb-6 h-px w-full max-w-[528px] bg-black/70" />
 
-    {detail.summary && (
-      <p className="font-IBM text-[16px] leading-[20px] mb-6 whitespace-pre-wrap">{detail.summary}</p>
+    {detail.topic && (
+      <p className="font-IBM text-[16px] leading-[20px] mb-6 whitespace-pre-wrap">{detail.topic}</p>
     )}
 
     <DetailSection text={detail.startPoint} images={detail.imagesBySection?.startPoint} />
