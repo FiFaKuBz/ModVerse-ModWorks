@@ -81,5 +81,6 @@ class GoogleOAuth:
         return id_token.verify_oauth2_token(
             id_token_str,
             grequests.Request(),
-            self.client_id
+            self.client_id,
+            clock_skew_in_seconds=10
         )

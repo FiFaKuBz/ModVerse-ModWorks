@@ -4,7 +4,8 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
-import { getProject, listProjects } from "../api/projects";
+import { getProject, listProjects, addComment, getComments } from "../api/projects";
+import { useSession } from "../session/SessionContext";
 import { getTopicDetailBg } from "../constants/topicColors";
 import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
 import thumbsUpIcon from "../assets/ThumbsUp-icon.svg";
@@ -369,6 +370,7 @@ const Sidebar = ({ recommended }) => (
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const location = useLocation();
+  const { expiresAt } = useSession();
   const navigate = useNavigate();
   const [showCoauthors, setShowCoauthors] = useState(false);
   const [project, setProject] = useState(location.state?.project || null);
@@ -386,21 +388,38 @@ export default function ProjectDetailPage() {
     setActiveEmote(prev => prev === emoteName ? null : emoteName);
   };
 
-  const handleCommentSubmit = () => {
+// Load comments when project loads
+  useEffect(() => {
+    if (!id) return;
+    const loadComments = async () => {
+        const data = await getComments(id);
+        setCommentsList(data);
+    };
+    loadComments();
+  }, [id]);
+
+  const handleCommentSubmit = async () => {
     const text = newCommentText.trim();
     if (!text) return;
     
-    const newComment = {
-        author: contributorName,
-        text: text,
-        avatarColor: primaryBg,
-        reaction: activeEmote, 
-    };
+    // Optimistic Update (Optional: Show immediately) or Wait for server
+    if (!expiresAt) {
+        alert("Please login to comment");
+        return;
+    }
 
-    // Add new comment to the list
-    setCommentsList(prev => [...prev, newComment]);
-    setNewCommentText(""); // Clear input field
-    setActiveEmote(null); // Clear active emote after submitting
+    try {
+        // Call API
+        const newComment = await addComment(id, text);
+        
+        if (newComment) {
+            setCommentsList(prev => [...prev, newComment]);
+            setNewCommentText("");
+            setActiveEmote(null);
+        }
+    } catch {
+        alert("Failed to post comment");
+    }
   };
   // =====================
 
@@ -455,6 +474,8 @@ export default function ProjectDetailPage() {
       canceled = true;
     };
   }, []);
+
+  
 
   const detail = project?.detail || {};
   const created = project?.createdAt ? new Date(project.createdAt) : null;

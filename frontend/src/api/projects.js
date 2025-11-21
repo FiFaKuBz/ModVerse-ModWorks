@@ -123,3 +123,51 @@ export async function updateProject(id, updates) {
     writeLocalProjects(list);
     return merged;
 }
+
+// POST /api/projects/:id/comments
+export async function addComment(projectId, text) {
+    try {
+        const res = await request(`/${projectId}/comments`, {
+            method: "POST",
+            body: JSON.stringify({ text }),
+        });
+        return res.comment;
+    } catch (e) {
+        console.error("Failed to add comment", e);
+        return null;
+    }
+}
+
+// GET /api/projects/:id/comments
+export async function getComments(projectId) {
+    try {
+        const res = await request(`/${projectId}/comments`, { method: "GET" });
+        return ensureArray(res.comments);
+    } catch {
+        return [];
+    }
+}
+
+// POST /api/projects/:id/interact
+export async function interactProject(id, action) {
+    // action = 'like' | 'dislike'
+    try {
+        const res = await request(`/${id}/interact`, {
+            method: "POST",
+            body: JSON.stringify({ action }),
+        });
+        return res.data; // Returns { likes: n, dislikes: n, isLiked: bool, isDisliked: bool }
+    } catch {
+        return null;
+    }
+}
+
+// POST /api/projects/:id/save
+export async function toggleSaveProject(id) {
+    try {
+        const res = await request(`/${id}/save`, { method: "POST" });
+        return res.isSaved;
+    } catch {
+        return false;
+    }
+}

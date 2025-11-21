@@ -65,7 +65,7 @@ init_auth_routes(google_oauth, user_model, otp_service)
 init_user_routes(user_model, project_model)
 
 # ✅ 3. ส่ง tag_model เข้าไปใน init_project_routes ด้วย
-init_project_routes(project_model, tag_model)
+init_project_routes(project_model, tag_model, user_model)
 
 # ลงทะเบียน blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')

@@ -83,3 +83,46 @@ class UserModel:
             {"$set": update_data}
         )
         return result.matched_count > 0
+    
+    def follow_user(self, follower_id: ObjectId, target_user_id: ObjectId):
+        """
+        follower_id: The ID of the person doing the action (You)
+        target_user_id: The ID of the person being followed
+        """
+        if follower_id == target_user_id:
+            return False
+
+        # Add target to your 'following' list
+        self.users.update_one(
+            {"_id": follower_id},
+            {"$addToSet": {"following": str(target_user_id)}}
+        )
+        
+        # Add you to target's 'followers' list
+        self.users.update_one(
+            {"_id": target_user_id},
+            {"$addToSet": {"followers": str(follower_id)}}
+        )
+        return True
+
+    def unfollow_user(self, follower_id: ObjectId, target_user_id: ObjectId):
+        self.users.update_one(
+            {"_id": follower_id},
+            {"$pull": {"following": str(target_user_id)}}
+        )
+        self.users.update_one(
+            {"_id": target_user_id},
+            {"$pull": {"followers": str(follower_id)}}
+        )
+        return True
+    
+    def toggle_save_project(self, user_id: ObjectId, project_id: str):
+        user = self.users.find_one({"_id": user_id})
+        saved = user.get("saved_projects", [])
+        
+        if project_id in saved:
+            self.users.update_one({"_id": user_id}, {"$pull": {"saved_projects": project_id}})
+            return False # Not saved anymore
+        else:
+            self.users.update_one({"_id": user_id}, {"$addToSet": {"saved_projects": project_id}})
+            return True # Now saved

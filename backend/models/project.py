@@ -4,6 +4,7 @@ from bson import ObjectId
 import base64
 import io
 from PIL import Image
+import uuid
 
 class ProjectModel:
     def __init__(self, db):
@@ -147,3 +148,106 @@ class ProjectModel:
         if field not in {"views","likes"}: return False
         r = self.col.update_one({"_id": pid}, {"$inc": {f"metrics.{field}": n}})
         return r.matched_count == 1
+    
+    def add_comment(self, project_id: ObjectId, user_data: dict, text: str) -> dict:
+        comment_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        
+        comment = {
+            "id": comment_id,
+            "user_id": str(user_data["_id"]),
+            "author": user_data.get("name") or user_data.get("username"),
+            "avatar": user_data.get("avatar"),
+            "text": text,
+            "created_at": now,
+            "likes": [],
+            "dislikes": []
+        }
+
+        result = self.col.update_one(
+            {"_id": project_id},
+            {
+                "$push": {"comments": comment},
+                "$inc": {"metrics.comments": 1} # Update the counter
+            }
+        )
+        
+        return comment if result.modified_count > 0 else None
+
+    # ADD THIS METHOD
+    def get_comments(self, project_id: ObjectId):
+        project = self.col.find_one(
+            {"_id": project_id}, 
+            {"comments": 1, "_id": 0}
+        )
+        return project.get("comments", []) if project else []
+    
+    def get_total_likes(self, owner_id: ObjectId) -> int:
+        """
+        Calculates the sum of likes for all projects owned by a specific user.
+        """
+        pipeline = [
+            # 1. Filter: Find projects by this owner that aren't deleted
+            {"$match": {"owner_id": owner_id, "is_deleted": {"$ne": True}}},
+            # 2. Group: Sum the 'metrics.likes' field
+            {"$group": {"_id": None, "total": {"$sum": "$metrics.likes"}}}
+        ]
+        
+        # Execute aggregation
+        result = list(self.col.aggregate(pipeline))
+        
+        # Return the total or 0 if no projects found
+        return result[0]["total"] if result else 0
+    
+def toggle_interaction(self, pid: ObjectId, user_id: str, action: str):
+        """
+        action: 'like' or 'dislike'
+        Returns dict with new counts and user status
+        """
+        project = self.col.find_one({"_id": pid})
+        if not project:
+            return None
+            
+        likes = project.get("likes", [])
+        dislikes = project.get("dislikes", [])
+        
+        is_liked = user_id in likes
+        is_disliked = user_id in dislikes
+        
+        if action == "like":
+            if is_liked:
+                # Toggle Off
+                self.col.update_one({"_id": pid}, {"$pull": {"likes": user_id}, "$inc": {"metrics.likes": -1}})
+                is_liked = False
+            else:
+                # Toggle On (and remove dislike if exists)
+                update = {"$addToSet": {"likes": user_id}, "$inc": {"metrics.likes": 1}}
+                if is_disliked:
+                    update["$pull"] = {"dislikes": user_id}
+                    is_disliked = False
+                self.col.update_one({"_id": pid}, update)
+                is_liked = True
+                
+        elif action == "dislike":
+            if is_disliked:
+                # Toggle Off
+                self.col.update_one({"_id": pid}, {"$pull": {"dislikes": user_id}})
+                is_disliked = False
+            else:
+                # Toggle On (and remove like if exists)
+                update = {"$addToSet": {"dislikes": user_id}}
+                if is_liked:
+                    update["$pull"] = {"likes": user_id}
+                    update["$inc"] = {"metrics.likes": -1} # Decrease like count
+                    is_liked = False
+                self.col.update_one({"_id": pid}, update)
+                is_disliked = True
+
+        # Get fresh counts
+        updated = self.col.find_one({"_id": pid}, {"likes": 1, "dislikes": 1, "metrics": 1})
+        return {
+            "likes": len(updated.get("likes", [])),
+            "dislikes": len(updated.get("dislikes", [])),
+            "isLiked": is_liked,
+            "isDisliked": is_disliked
+        }

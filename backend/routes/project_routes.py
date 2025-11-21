@@ -3,16 +3,20 @@ from flask import Blueprint, request, jsonify, session
 from bson import ObjectId
 from bson.errors import InvalidId
 from ..auth.decorators import login_required
+import uuid
+from datetime import datetime, timezone
 
 project_bp = Blueprint("project", __name__)
 
 project_model = None
+user_model = None
 tag_model = None
 
-def init_project_routes(p_model, t_model):
-    global project_model, tag_model
+def init_project_routes(p_model, t_model, u_model):
+    global project_model, tag_model, user_model
     project_model = p_model
     tag_model = t_model
+    user_model = u_model
 
 # ✅ แก้ไขคำผิดจาก categorys เป็น categories
 @project_bp.route("/categories", methods=["GET"])
@@ -214,5 +218,89 @@ def like_project(project_id):
         }), 200
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+# ==================== COMMENTS ====================
+@project_bp.route("/<project_id>/comments", methods=["GET"])
+def get_project_comments(project_id):
+    try:
+        pid = ObjectId(project_id)
+        # Check if project_model is actually loaded
+        if not project_model:
+             return jsonify({"error": "Project model not initialized"}), 500
+
+        comments = project_model.get_comments(pid)
+        return jsonify({"success": True, "comments": comments}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@project_bp.route("/<project_id>/comments", methods=["POST"])
+@login_required
+def add_comment(project_id):
+    try:
+        # Check if user_model is loaded (This is where your error happened)
+        if not user_model:
+            print("❌ Error: user_model is None in project_routes")
+            return jsonify({"error": "Internal Server Error: User model not loaded"}), 500
+
+        pid = ObjectId(project_id)
+        data = request.get_json()
+        text = data.get("text")
+        
+        if not text:
+            return jsonify({"error": "Comment text is required"}), 400
+
+        # Get current user info to embed in the comment
+        # Now user_model is properly initialized!
+        user = user_model.get_user_by_id(ObjectId(session["user"]["id"]))
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        new_comment = project_model.add_comment(pid, user, text)
+        
+        if new_comment:
+            return jsonify({"success": True, "comment": new_comment}), 201
+        else:
+            return jsonify({"error": "Failed to add comment"}), 400
+            
+    except Exception as e:
+        print(f"❌ Add comment error: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+@project_bp.route("/<project_id>/interact", methods=["POST"])
+@login_required
+def interact_project(project_id):
+    try:
+        pid = ObjectId(project_id)
+        user_id = session["user"]["id"]
+        data = request.get_json()
+        action = data.get("action") # 'like' or 'dislike'
+        
+        if action not in ["like", "dislike"]:
+            return jsonify({"error": "Invalid action"}), 400
+
+        result = project_model.toggle_interaction(pid, user_id, action)
+        if not result:
+            return jsonify({"error": "Project not found"}), 404
+            
+        return jsonify({"success": True, "data": result}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@project_bp.route("/<project_id>/save", methods=["POST"])
+@login_required
+def save_project_route(project_id):
+    try:
+        # Check if user_model is loaded
+        if not user_model:
+             return jsonify({"error": "User model not initialized"}), 500
+
+        user_id = ObjectId(session["user"]["id"])
+        is_saved = user_model.toggle_save_project(user_id, project_id)
+        
+        return jsonify({"success": True, "isSaved": is_saved}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

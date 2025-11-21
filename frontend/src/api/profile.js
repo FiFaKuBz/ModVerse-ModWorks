@@ -113,3 +113,30 @@ export async function getProfileBySlug(slug) {
     const local = readLocalProfile();
     return slugify(local.username) === slug ? local : null;
 }
+
+export async function followUser(username) {
+    try {
+        // Note: Assuming your user routes are mapped to /api/users in backend/app.py
+        const res = await fetch(`/api/users/${username}/follow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include"
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
+export async function unfollowUser(username) {
+    try {
+        const res = await fetch(`/api/users/${username}/unfollow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include"
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}

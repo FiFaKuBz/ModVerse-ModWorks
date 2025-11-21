@@ -108,3 +108,39 @@ def get_public_profile(username):
 def admin_panel():
     """Admin-only resource (requires role: 'admin')"""
     return jsonify(message=f"Welcome, Admin. Access Granted to: {session['user']['name']}"), 200
+
+
+@user_bp.route("/<username>/follow", methods=["POST"])
+@role_required()
+def follow_user_route(username):
+    try:
+        # Who is performing the action
+        me_id = ObjectId(session["user"]["id"])
+        
+        # Who is the target
+        target_user = user_model.get_user_by_username(username)
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+            
+        target_id = ObjectId(target_user["_id"])
+        
+        success = user_model.follow_user(me_id, target_id)
+        return jsonify({"success": success}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@user_bp.route("/<username>/unfollow", methods=["POST"])
+@role_required()
+def unfollow_user_route(username):
+    try:
+        me_id = ObjectId(session["user"]["id"])
+        target_user = user_model.get_user_by_username(username)
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+            
+        target_id = ObjectId(target_user["_id"])
+        
+        success = user_model.unfollow_user(me_id, target_id)
+        return jsonify({"success": success}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
