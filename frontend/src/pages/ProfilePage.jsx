@@ -63,6 +63,23 @@ const FALLBACK_PROFILE = {
   showSavedPublicly: true,
 };
 
+const SAVED_KEY = "mv_saved_projects";
+
+const readSavedProjects = () => {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const pickSavedIds = (profile) => {
+  const ids = profile?.saved_projects || profile?.savedProjects || [];
+  return Array.isArray(ids) ? ids.map((v) => String(v)) : [];
+};
+
 export default function ProfilePage() {
   const navigate = useNavigate();
 
@@ -108,6 +125,7 @@ export default function ProfilePage() {
     const fetchData = async () => {
       const fallbackContributor = profileUsername || FALLBACK_PROFILE.username;
       const ownerSlug = slugify(profileUsername);
+      const savedIds = pickSavedIds(profile);
       try {
         const remote = await listProjects();
         if (canceled) return;
@@ -136,11 +154,17 @@ export default function ProfilePage() {
         });
 
         setProjects(combined);
-        setSavedProjects(SAMPLE_SAVED);
+
+        // Saved projects: prefer backend saved IDs, fall back to local cache
+        const savedList =
+          savedIds.length > 0
+            ? dataset.filter((p) => savedIds.includes(String(p.id)))
+            : readSavedProjects();
+        setSavedProjects(savedList);
       } catch {
         if (!canceled) {
           setProjects(SAMPLE_CREATED);
-          setSavedProjects(SAMPLE_SAVED);
+          setSavedProjects(savedIds.length ? [] : readSavedProjects());
         }
       }
     };

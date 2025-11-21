@@ -53,17 +53,6 @@ const SAMPLE_OTHER_CREATED = [
   // },
 ];
 
-const SAMPLE_OTHER_SAVED = [
-  // {
-  //   id: "other-ai-diagnostic",
-  //   title: "AI Diagnostic Assistant",
-  //   contributor: "Noah",
-  //   tags: ["Algorithm", "Digital Circuit"],
-  //   image:
-  //     "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
-  // },
-];
-
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g. /profile/lara-cooper
 
@@ -78,8 +67,7 @@ export default function OtherProfilePage() {
   };
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
-
-  const savedProjects = SAMPLE_OTHER_SAVED;
+  const [savedProjects, setSavedProjects] = useState([]);
   // --- UI state ---
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Created");
@@ -122,6 +110,20 @@ export default function OtherProfilePage() {
         const list = await listProjects();
         if (canceled) return;
         setRemoteProjects(Array.isArray(list) ? list : []);
+
+        // Prep for backend support: attempt saved fetch when available
+        if (username && profile?.showSavedPublicly !== false) {
+          try {
+            const res = await fetch(`/api/users/${username}/saved`, { credentials: "include" });
+            if (!res.ok) throw new Error("saved endpoint unavailable");
+            const data = await res.json();
+            if (Array.isArray(data?.projects)) setSavedProjects(data.projects);
+          } catch {
+            setSavedProjects([]);
+          }
+        } else {
+          setSavedProjects([]);
+        }
       } catch {
         if (!canceled) setRemoteProjects([]);
       }
