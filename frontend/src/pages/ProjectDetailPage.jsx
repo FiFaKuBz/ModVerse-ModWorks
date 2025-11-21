@@ -7,6 +7,13 @@ import ProjectCard from "../components/Profile/ProjectCard";
 import { getProject, listProjects } from "../api/projects";
 import { getTopicDetailBg } from "../constants/topicColors";
 import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
+import thumbsUpIcon from "../assets/ThumbsUp-icon.svg";
+import thumbsDownIcon from "../assets/ThumbsDown-icon.svg";
+
+const EMOTES = [
+  { name: "like", icon: thumbsUpIcon, alt: "Like" },
+  { name: "dislike", icon: thumbsDownIcon, alt: "Dislike" },
+];
 
 const FALLBACK_RECOMMENDATIONS = [
   // {
@@ -219,7 +226,7 @@ const PreviousComments = ({ comments }) => {
                               title="Like"
                           >
                               <img 
-                                  src={likeIcon} 
+                                  src={thumbsUpIcon} 
                                   alt="👍" 
                                   className="h-4 w-auto cursor-pointer" 
                               />
