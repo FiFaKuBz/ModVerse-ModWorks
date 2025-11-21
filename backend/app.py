@@ -62,7 +62,7 @@ with app.app_context():
 
 # เตรียมค่าสำหรับ routes
 init_auth_routes(google_oauth, user_model, otp_service)
-init_user_routes(user_model)
+init_user_routes(user_model, project_model)
 
 # ✅ 3. ส่ง tag_model เข้าไปใน init_project_routes ด้วย
 init_project_routes(project_model, tag_model)

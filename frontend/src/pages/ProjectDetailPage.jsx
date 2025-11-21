@@ -122,49 +122,24 @@ const DetailSection = ({ text, images }) => {
 };
 
 // Comment Input Box
-const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit, activeEmote, onEmoteClick }) => (
+const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit }) => (
   <div className="mt-10 w-full rounded-2xl border border-[#D35400] bg-white p-6 text-sm text-neutral-600">
     <h3 className="font-At text-[20px] font-bold leading-[20px] mb-4 text-black">
       อยากพูดคุย ชื่นชม หรือแนะนำ?
     </h3>
-    <div className="flex items-center gap-4 mb-4">
-      {/* Emote rendering loop - Clickable icons */}
-      {EMOTES.map(emote => {
-        const isActive = activeEmote === emote.name;
-        const stateClasses = isActive 
-            ? 'opacity-100' // Fully visible when active
-            : 'opacity-50 hover:opacity-100'; // Dim when inactive
-
-        return (
-          <button 
-            key={emote.name}
-            onClick={() => onEmoteClick(emote.name)}
-            className="hover:scale-110 transition active:scale-95"
-          >
-        <img 
-          src={emote.icon} 
-          alt={emote.alt} 
-          className={`h-8 w-auto ${stateClasses}`}
-        />
-          </button>
-        );
-      })}
-    </div>
-    
     <div className="relative mb-3">
       <textarea 
         placeholder="เขียนสิ่งที่อยากบอกตรงนี้ได้เลย!"
-        value={commentText}
-        onChange={(e) => onCommentChange(e.target.value)} 
+        value={commentText} // ✅ ADDED: Controlled input value
+        onChange={(e) => onCommentChange(e.target.value)} // ✅ ADDED: Change handler
         className="w-full h-[120px] rounded-xl border border-[#D35400] p-4 text-sm outline-none resize-none placeholder-gray-400 text-black focus:ring-1 focus:ring-[#D35400]"
       />
     </div>
 
-    {/* Submit Button aligned to right */}
     <div className="flex justify-end">
       <button 
-        onClick={onCommentSubmit}
-        disabled={!commentText.trim()} // Disable if empty
+        onClick={onCommentSubmit} // ✅ ADDED: Submit handler
+        disabled={!commentText.trim()} // ✅ ADDED: Disable if empty
         className={`font-An font-semibold text-base rounded-full px-8 py-2 transition active:scale-95 shadow-sm
           ${!commentText.trim() 
             ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
@@ -179,73 +154,54 @@ const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit, activeEmo
 );
 
 // Component: Display previous comments
-const PreviousComments = ({ comments }) => {
-    // State to track which comment the current user has reacted to (simulates API interaction)
-    const [userReactions, setUserReactions] = useState({});
-
-    const handleReactionClick = (commentIndex, reactionType) => {
-        setUserReactions(prev => {
-            const currentReaction = prev[commentIndex];
-            if (currentReaction === reactionType) {
-                // Toggle off
-                return { ...prev, [commentIndex]: null };
-            } else {
-                // Toggle on new reaction (or change reaction)
-                return { ...prev, [commentIndex]: reactionType };
-            }
-        });
-    };
-
+const PreviousComments = ({ comments, onReact, currentUserId }) => {
     return (
       <div className="mt-8 w-full space-y-6">
+          {/* ✅ CHANGED: Added .reverse() to show newest first */}
           {[...comments].reverse().map((comment, index) => {
-              const commentIndex = comments.length - 1 - index; // Original index for state map
-              const currentReaction = userReactions[commentIndex];
+              // ✅ ADDED: Check if current user's ID is in the likes/dislikes arrays from DB
+              const isLiked = comment.likes?.includes(currentUserId);
+              const isDisliked = comment.dislikes?.includes(currentUserId);
 
               return (
-                  <div key={index} className="flex gap-4">
-                      {/* Avatar Placeholder */}
-                      <div 
-                          className="w-[56px] h-[56px] rounded-full flex-shrink-0"
-                          style={{ backgroundColor: comment.avatarColor || '#D9D9D9' }} 
-                      ></div>
+                  <div key={comment.id || index} className="flex gap-4"> {/* ✅ CHANGED: Prefer comment.id as key */}
+                      <div className="w-[56px] h-[56px] rounded-full flex-shrink-0 bg-neutral-200 overflow-hidden">
+                        {/* ✅ ADDED: Real avatar rendering */}
+                        {comment.avatar ? <img src={comment.avatar} className="w-full h-full object-cover"/> : null}
+                      </div>
                       
                       <div className="flex-1 pt-1">
                         <div className="font-bold text-black text-lg font-At leading-tight">{comment.author}</div>
-                        <p className="text-black font-IBM text-sm mt-1">
+                        <p className="text-black font-IBM text-sm mt-1 whitespace-pre-wrap">
                           {comment.text}
                         </p>
 
-                        {/* Clickable Reaction and Reply area */}
                         <div className="mt-2 inline-flex items-center gap-4">
-                          
                           {/* Like Button */}
                           <button 
-                              onClick={() => handleReactionClick(commentIndex, 'like')}
-                              className={`flex items-center gap-1 text-sm transition ${currentReaction === 'like' ? 'opacity-100' : 'opacity-50 hover:opacity-100'}`}
+                              // ✅ CHANGED: Calls parent `onReact` instead of local handler
+                              onClick={() => onReact(comment.id, 'like')}
+                              // ✅ CHANGED: Styles based on `isLiked` derived from prop
+                              className={`flex items-center gap-1 text-sm transition ${isLiked ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-100'}`}
                               title="Like"
                           >
-                              <img 
-                                  src={thumbsUpIcon} 
-                                  alt="👍" 
-                                  className="h-4 w-auto cursor-pointer" 
-                              />
+                              <img src={thumbsUpIcon} alt="👍" className="h-4 w-auto cursor-pointer" />
+                              {/* ✅ ADDED: Count display */}
+                              <span className="text-xs">{comment.likes?.length || 0}</span>
                           </button>
                           
-                          {/* Thumbs Down Button */}
+                          {/* Dislike Button */}
                           <button 
-                              onClick={() => handleReactionClick(commentIndex, 'dislike')}
-                              className={`flex items-center gap-1 text-sm transition ${currentReaction === 'dislike' ? 'opacity-100' : 'opacity-50 hover:opacity-100'}`}
+                              // ✅ CHANGED: Calls parent `onReact`
+                              onClick={() => onReact(comment.id, 'dislike')}
+                              // ✅ CHANGED: Styles based on `isDisliked` derived from prop
+                              className={`flex items-center gap-1 text-sm transition ${isDisliked ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-100'}`}
                               title="Dislike"
                           >
-                              <img 
-                                  src={thumbsDownIcon} 
-                                  alt="👎" 
-                                  className="h-4 w-auto cursor-pointer" 
-                              /> 
+                              <img src={thumbsDownIcon} alt="👎" className="h-4 w-auto cursor-pointer" /> 
+                              {/* ✅ ADDED: Count display */}
+                              <span className="text-xs">{comment.dislikes?.length || 0}</span>
                           </button>
-                          
-                          {/* <button className="text-xs text-black underline font-IBM hover:text-gray-600">Reply</button> */}
                         </div>
                       </div>
                   </div>

@@ -37,7 +37,8 @@ const mapProject = (p = {}) => {
     const ownerId = p.ownerId || p.owner_id;
     const createdAt = p.createdAt || p.created_at || p.created;
     const updatedAt = p.updatedAt || p.updated_at || p.updated;
-    const metrics7d = p.metrics7d && typeof p.metrics7d === "object" ? p.metrics7d : {};
+    const metrics7d =
+        p.metrics7d && typeof p.metrics7d === "object" ? p.metrics7d : {};
     return {
         ...p,
         ...(id ? { id } : {}),
@@ -70,12 +71,16 @@ export async function listProjects() {
 export async function getProject(id) {
     try {
         const remote = await request(`/${id}`, { method: "GET" });
-        if (remote?.project) return mapProject(remote.project);
+        if (remote ?.project) return mapProject(remote.project);
         if (remote) return mapProject(remote);
     } catch {
         // fallback below
     }
-    return readLocalProjects().map(mapProject).find((p) => p.id === id) || null;
+    return (
+        readLocalProjects()
+        .map(mapProject)
+        .find((p) => p.id === id) || null
+    );
 }
 
 const generateLocalId = () => `u-${Date.now()}`;
@@ -87,7 +92,7 @@ export async function createProject(project) {
             method: "POST",
             body: JSON.stringify(project),
         });
-        if (created?.project) return mapProject(created.project);
+        if (created ?.project) return mapProject(created.project);
         if (created) return mapProject(created);
     } catch {
         // fall through to local storage

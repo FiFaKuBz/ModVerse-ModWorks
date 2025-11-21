@@ -22,13 +22,9 @@ def get_all_tags():
     """
     try:
         if not tag_model:
-            return jsonify({"error": "Tag model not initialized"}), 500
-            
+            return jsonify({"error": "Tag model not initialized"}), 500 
         tags = tag_model.list_all()
-        return jsonify({
-            "success": True,
-            "tags": tags
-        }), 200
+        return jsonify({"success": True, "tags": tags}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -42,18 +38,13 @@ def create_project():
     try:
         if "user" not in session:
             return jsonify({"error": "Not authenticated"}), 401
-        
-        user_id_str = session["user"]["id"]
-        user_id = ObjectId(user_id_str)
-        
+        user_id = ObjectId(session["user"]["id"])
         data = request.get_json()
-
         if "user" in session:
             data["contributor"] = session["user"].get("username") or session["user"].get("name")
 
         if not data:
             return jsonify({"error": "No data provided"}), 400
-        
         if not data.get("title"):
             return jsonify({"error": "Title is required"}), 400
         
