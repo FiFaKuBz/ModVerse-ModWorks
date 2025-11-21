@@ -141,11 +141,11 @@ const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit, activeEmo
             onClick={() => onEmoteClick(emote.name)}
             className="hover:scale-110 transition active:scale-95"
           >
-            <img 
-              src={emote.icon} 
-              alt={emote.alt} 
-              className={`h-8 w-auto ${stateClasses} ${emote.name === 'thumbsDown' ? 'transform rotate-180' : ''}`}
-            />
+        <img 
+          src={emote.icon} 
+          alt={emote.alt} 
+          className={`h-8 w-auto ${stateClasses}`}
+        />
           </button>
         );
       })}
@@ -241,11 +241,11 @@ const PreviousComments = ({ comments }) => {
                               <img 
                                   src={thumbsDownIcon} 
                                   alt="👎" 
-                                  className="h-4 w-auto cursor-pointer transform rotate-180" 
+                                  className="h-4 w-auto cursor-pointer" 
                               /> 
                           </button>
                           
-                          <button className="text-xs text-black underline font-IBM hover:text-gray-600">Reply</button>
+                          {/* <button className="text-xs text-black underline font-IBM hover:text-gray-600">Reply</button> */}
                         </div>
                       </div>
                   </div>
