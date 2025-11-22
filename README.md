@@ -110,7 +110,7 @@ CPE334_Final_Project/
    ```bash
    ./script.sh
    ```
-   i. Mode 0: Full Install (npm install + pip install) -> Build -> Run
+   i. Mode 0: Full Install (npm install + pip install) -> Build -> Run\
    ii. Mode 1: Quick Start (Build -> Run)
 
 > need .env file
