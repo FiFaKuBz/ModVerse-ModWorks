@@ -3,19 +3,38 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import TopicTray from "../topics/TopicTray";
 import { useSession } from "../../session/SessionContext";
 import MVMWlogo from "../../assets/MVMWlogo.svg";
+import { getProfile } from "../../api/profile";
 
 export default function LandingHeader({
   topics = [],
   selectedTopics = [],
   onChangeTopic,
   variant,
+  profile,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useSession();
   const [openTopics, setOpenTopics] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getProfile();
+        // FIX 2: Use the setter defined above
+        if (res && res.avatar) {
+            setAvatarUrl(res.avatar);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const isLogin =
     variant === "login" || location.pathname === "/login" || location.pathname === "/landing";
@@ -110,9 +129,13 @@ export default function LandingHeader({
                   className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-yellow-500"
                   aria-expanded={openMenu}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-yellow-500">
-                    <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.2 0-8 2.1-8 5v1h16v-1c0-2.9-3.8-5-8-5Z" />
-                  </svg>
+              {avatarUrl ? (
+                    <img src={avatarUrl} alt="User Profile" className="w-full h-full object-cover rounded-full"/>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-yellow-500">
+                        <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.2 0-8 2.1-8 5v1h16v-1c0-2.9-3.8-5-8-5Z" />
+                    </svg>
+                  )}
                 </button>
                 {openMenu && (
                   <div className="absolute right-0 mt-2 w-44 rounded-xl border bg-white shadow-lg overflow-hidden z-50" role="menu">
