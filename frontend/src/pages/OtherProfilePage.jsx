@@ -188,6 +188,7 @@ export default function OtherProfilePage() {
           
           // [FIX] Pass username and initial status for Follow logic
           username={resolvedProfile.username}
+          userId={resolvedProfile._id}
           isFollowingInitial={resolvedProfile.isFollowing}
 
           isBlockedInitial={resolvedProfile.isBlocked}

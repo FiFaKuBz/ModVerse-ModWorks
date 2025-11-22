@@ -16,6 +16,7 @@ export default function ProfileStats({
   onShare, // passed from ProfilePage
   onEdit,  // passed from ProfilePage
   username,
+  userId,
   isFollowingInitial = false,
   isBlockedInitial = false
 }) {
@@ -126,6 +127,7 @@ export default function ProfileStats({
         isOpen={isOptionsOpen}
         onClose={() => setIsOptionsOpen(false)}
         username={username} 
+        userId={userId}
         isBlockedInitial={isBlockedInitial}
       />
     </div>

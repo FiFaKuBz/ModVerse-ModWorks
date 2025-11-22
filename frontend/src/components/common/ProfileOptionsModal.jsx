@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
-// ✅ เปลี่ยนจากรับ username เป็น userId
-export default function ProfileOptionsModal({ isOpen, onClose, userId, isBlockedInitial }) {
+// ✅ รับทั้ง userId (สำหรับ Block) และ username (สำหรับ Report)
+export default function ProfileOptionsModal({ isOpen, onClose, userId, username, isBlockedInitial }) {
   const [isBlocked, setIsBlocked] = useState(isBlockedInitial || false);
   const [showReportReasons, setShowReportReasons] = useState(false);
   const [otherReason, setOtherReason] = useState("");
@@ -37,8 +37,7 @@ export default function ProfileOptionsModal({ isOpen, onClose, userId, isBlocked
           return;
       }
 
-      // ✅ เปลี่ยน URL เป็น /api/users/block/<userId> หรือ /api/users/unblock/<userId>
-      // (ต้องแน่ใจว่า Backend route รองรับ pattern นี้แล้วตามที่คุณแก้ไขไปก่อนหน้า)
+      // ✅ ใช้ userId สำหรับ Block/Unblock
       const res = await fetch(`/api/users/${action}/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,43 +60,13 @@ export default function ProfileOptionsModal({ isOpen, onClose, userId, isBlocked
     console.log("📩 Report sent:", reason);
     
     try {
-      if (!userId) {
-          alert("Error: User ID is missing for report!");
+      // ✅ ใช้ username สำหรับ Report (ตาม Backend Route: /<username>/report)
+      if (!username) {
+          alert("Error: Username is missing for report!");
           return;
       }
 
-      // หมายเหตุ: Report API อาจจะยังคงใช้ username หรือ userId ก็ได้ ขึ้นอยู่กับ Backend
-      // แต่ถ้า Backend Route ยังเป็น /<username>/report อยู่ คุณอาจต้องส่ง username เข้ามาด้วย
-      // หรือถ้าคุณแก้ Backend Route ของ Report ให้รับ userId ด้วย ก็ใช้ userId ได้เลย
-      // *สมมติว่าคุณแก้ Backend ให้ Report ใช้ userId ด้วย หรือถ้ายังไม่แก้ คุณต้องระวังจุดนี้*
-      // เพื่อความชัวร์ ผมจะใช้ userId ในการส่ง report ด้วย (สมมติว่าคุณแก้ Backend Route เป็น /report/<userId> หรือส่ง body)
-      
-      // แต่ตาม Route เดิมที่คุณแก้ล่าสุด:
-      // @user_bp.route("/<username>/report", methods=["POST"]) 
-      // มันยังรับ <username> อยู่!
-      // ดังนั้นถ้าจะใช้ userId คุณต้องแก้ Backend Route ของ Report ด้วย หรือส่ง username เข้ามาใน Modal นี้คู่กัน
-      
-      // *ทางแก้ชั่วคราว:* ผมจะสมมติว่าคุณยังไม่ได้แก้ Report route ให้รับ ID
-      // ดังนั้นการกด Report อาจจะ Error 404 ถ้าเราส่ง userId ไปในที่ที่รอ username
-      
-      // *ทางแก้ที่แนะนำ:* ผมจะแก้ Code นี้ให้เรียก /api/users/report โดยส่ง target_id ใน Body แทน
-      // หรือถ้าคุณไม่อยากแก้ Backend เยอะ ให้รับ username เข้ามาด้วยเพื่อใช้สำหรับ Report อย่างเดียว
-      
-      // *ในที่นี้ผมขอใช้ userId ส่งไปก่อน แต่คุณต้องไปแก้ Backend Route ของ Report ให้รับ <user_id> เหมือน Block นะครับ*
-      // หรือถ้ายังไม่แก้ Backend Route ของ Report ให้กลับไปแก้ Backend ก่อน
-      
-      // สมมติว่า Backend Route ยังเป็น /<username>/report 
-      // งั้นผมจะ Alert เตือนไว้ก่อน
-      
-      // เพื่อให้โค้ดนี้ทำงานได้กับ Backend ที่คุณแก้ Block/Unblock ไปแล้ว ผมจะเรียก API Block ด้วย ID
-      // ส่วน Report ผมจะเรียกแบบเดิม (ซึ่งอาจจะ fail ถ้าไม่มี username) 
-      // แต่เพื่อให้ Block ใช้ ID ได้แน่นอน:
-      
-      // ถ้าคุณต้องการใช้ userId กับ Report ด้วย คุณต้องแก้ Backend:
-      // @user_bp.route("/report/<user_id>", methods=["POST"]) ...
-      
-      // *ในโค้ดนี้ผมจะลองส่ง userId ไปที่ URL Report ดู (เผื่อคุณแก้ Backend แล้ว)*
-       const res = await fetch(`/api/users/${userId}/report`, { // ⚠️ เช็ค Backend Route ว่ารับ ID หรือ Username
+       const res = await fetch(`/api/users/${username}/report`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -114,7 +83,7 @@ export default function ProfileOptionsModal({ isOpen, onClose, userId, isBlocked
         onClose();
       } else {
         const data = await res.json();
-        alert(data.error || "เกิดข้อผิดพลาดในการส่งรายงาน (ตรวจสอบว่า Backend Report Route รับ User ID หรือยัง)");
+        alert(data.error || "เกิดข้อผิดพลาดในการส่งรายงาน");
       }
     } catch (err) {
       console.error(err);
