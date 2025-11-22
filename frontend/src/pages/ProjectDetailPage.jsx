@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
-import { getProject, listProjects, addComment, getComments, interactProject, toggleSaveProject } from "../api/projects";
+import { getProject, listProjects, addComment, getComments, likeProject, dislikeProject, saveProject } from "../api/projects";
 import { useSession } from "../session/SessionContext";
 import { getTopicDetailBg } from "../constants/topicColors";
 import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
@@ -225,7 +225,6 @@ const CommentPanel = ({
           style={{ filter: safeLike.isDisliked ? ICON_FILTER_ORANGE : ICON_FILTER_NONE }}
         />
         <span className="font-semibold">Dislike</span>
-        <span className="text-xs text-black">({safeLike.dislikes})</span>
       </button>
       <button
         type="button"
@@ -477,8 +476,8 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     // hydrate like/save state from project if available
     if (!project) return;
-    const likes = Array.isArray(project.likes) ? project.likes.length : project.metrics?.likes || 0;
-    const dislikes = Array.isArray(project.dislikes) ? project.dislikes.length : 0;
+    const likes = project.metrics?.likes || 0;
+    const dislikes = project.metrics?.dislikes || 0;
     setLikeState({
       likes,
       dislikes,
@@ -525,17 +524,22 @@ export default function ProjectDetailPage() {
       return;
     }
     try {
-      const res = await interactProject(id, action);
+      const apiCall = action === "like" ? likeProject : dislikeProject;
+      const res = await apiCall(id);
       if (res) {
-        const nextState = {
-          likes: res.likes ?? likeState.likes,
-          dislikes: res.dislikes ?? likeState.dislikes,
-          isLiked: !!res.isLiked,
-          isDisliked: !!res.isDisliked,
-        };
-        setLikeState(nextState);
-        if (action === "dislike" && nextState.isDisliked) {
+        const { isLiked, isDisliked } = res;
+        setLikeState((prev) => ({
+          ...prev,
+          isLiked,
+          isDisliked,
+        }));
+        if (action === "dislike" && isDisliked) {
           recordDislike(project?.contributor, project?.tags || project?.categories || []);
+        }
+        // Also refetch the project to get the updated like count
+        const fetched = await getProject(id);
+        if (fetched) {
+          setProject(fetched);
         }
       }
     } catch {
@@ -549,9 +553,11 @@ export default function ProjectDetailPage() {
       return;
     }
     try {
-      const saved = await toggleSaveProject(id);
-      const nextSaved = Boolean(saved);
-      setIsSaved(nextSaved);
+      const res = await saveProject(id);
+      if (res) {
+        const { isSaved } = res;
+        setIsSaved(isSaved);
+      }
     } catch {
       // ignore
     }

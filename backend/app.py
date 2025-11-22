@@ -10,6 +10,7 @@ from .models.user import UserModel
 from .models.project import ProjectModel
 from .models.category import TagModel
 from .models.report import ReportModel
+from .models.interactions import InteractionModel
 
 # Auth & Services
 from .auth.google import GoogleOAuth
@@ -47,6 +48,7 @@ with app.app_context():
     project_model = ProjectModel(mongo.db)
     tag_model = TagModel(mongo.db) 
     report_model = ReportModel(mongo.db)
+    interaction_model = InteractionModel(mongo.db)
     
     # สร้าง indexes
     project_model.ensure_indexes()
@@ -66,7 +68,7 @@ with app.app_context():
 init_auth_routes(google_oauth, user_model, otp_service)
 init_user_routes(user_model, project_model, report_model)
 # ✅ 3. ส่ง tag_model เข้าไปใน init_project_routes ด้วย
-init_project_routes(project_model, tag_model, user_model)
+init_project_routes(project_model, tag_model, user_model, interaction_model)
 
 # ลงทะเบียน blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
