@@ -225,7 +225,7 @@ export default function ShowcasePage() {
         {!isLoading && pageItems.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-[59px] justify-center mx-auto">
-              {pageItems.map(p => <ProjectCard key={p.id} project={p} />)}
+              {pageItems.map(p => <ProjectCard key={p.id} project={p} isOwner={false} />)}
             </div>
 
             <div className="mt-10">

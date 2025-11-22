@@ -128,6 +128,7 @@ export default function EditProfilePage() {
         </div>
 
         <form className="flex flex-col gap-8">
+          {/*
           <div>
             <label className="block text-lg font-semibold mb-1">Username</label>
             <input
@@ -151,6 +152,7 @@ export default function EditProfilePage() {
               className="w-full border border-[#D35400] rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-[#D35400] placeholder-gray-400"
             />
           </div>
+          */}
 
           <div>
             <label className="block text-lg font-semibold mb-1">About</label>

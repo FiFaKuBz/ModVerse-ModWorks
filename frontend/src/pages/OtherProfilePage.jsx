@@ -53,8 +53,7 @@ export default function OtherProfilePage() {
   };
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
-
-  const savedProjects = SAMPLE_OTHER_SAVED;
+  const [savedProjects, setSavedProjects] = useState([]);
   // --- UI state ---
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Created");
@@ -97,6 +96,20 @@ export default function OtherProfilePage() {
         const list = await listProjects();
         if (canceled) return;
         setRemoteProjects(Array.isArray(list) ? list : []);
+
+        // Prep for backend support: attempt saved fetch when available
+        if (username && profile?.showSavedPublicly !== false) {
+          try {
+            const res = await fetch(`/api/users/${username}/saved`, { credentials: "include" });
+            if (!res.ok) throw new Error("saved endpoint unavailable");
+            const data = await res.json();
+            if (Array.isArray(data?.projects)) setSavedProjects(data.projects);
+          } catch {
+            setSavedProjects([]);
+          }
+        } else {
+          setSavedProjects([]);
+        }
       } catch {
         if (!canceled) setRemoteProjects([]);
       }
@@ -105,7 +118,7 @@ export default function OtherProfilePage() {
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [username, profile?.showSavedPublicly]);
 
   const createdProjects = useMemo(() => {
     if (!username) return SAMPLE_OTHER_CREATED;
@@ -194,7 +207,7 @@ export default function OtherProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, idx) => (
-                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} />
+                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} isOwner={false} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">

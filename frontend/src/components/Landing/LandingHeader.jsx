@@ -19,7 +19,7 @@ export default function LandingHeader({
 
   const isLogin =
     variant === "login" || location.pathname === "/login" || location.pathname === "/landing";
-  const isShowcase = location.pathname.startsWith("/");
+  const isShowcase = location.pathname === "/";
 
   const trayTopics = useMemo(() => {
     const uniq = Array.from(new Set(topics)).filter((t) => t !== "all");
@@ -115,7 +115,7 @@ export default function LandingHeader({
                   </svg>
                 </button>
                 {openMenu && (
-                  <div className="absolute right-0 mt-2 w-44 rounded-xl border bg-white shadow-lg overflow-hidden" role="menu">
+                  <div className="absolute right-0 mt-2 w-44 rounded-xl border bg-white shadow-lg overflow-hidden z-50" role="menu">
                     <button
                       onClick={() => {
                         navigate("/profile");

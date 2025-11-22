@@ -4,17 +4,57 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
 import ProjectCard from "../components/Profile/ProjectCard";
-import { getProject, listProjects, addComment, getComments } from "../api/projects";
+import { getProject, listProjects, addComment, getComments, interactProject, toggleSaveProject } from "../api/projects";
 import { useSession } from "../session/SessionContext";
 import { getTopicDetailBg } from "../constants/topicColors";
 import { normalizeMetrics7d, pickCreatedAt, pickUpdatedAt, score7d } from "../utils/scoring";
 import thumbsUpIcon from "../assets/ThumbsUp-icon.svg";
 import thumbsDownIcon from "../assets/ThumbsDown-icon.svg";
+import savedIcon from "../assets/saved-icon.svg";
 
-const EMOTES = [
-  { name: "like", icon: thumbsUpIcon, alt: "Like" },
-  { name: "dislike", icon: thumbsDownIcon, alt: "Dislike" },
-];
+const DISLIKE_KEY = "mv_dislike_penalties";
+const DEFAULT_LIKE_STATE = { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
+const ICON_FILTER_ORANGE =
+  "brightness(0) saturate(100%) invert(50%) sepia(67%) saturate(667%) hue-rotate(349deg) brightness(95%) contrast(93%)";
+const ICON_FILTER_NONE = "none";
+
+const readPenalties = () => {
+  try {
+    const raw = localStorage.getItem(DISLIKE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "object" && parsed ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writePenalties = (data) => {
+  try {
+    localStorage.setItem(DISLIKE_KEY, JSON.stringify(data || {}));
+  } catch {
+    /* ignore */
+  }
+};
+
+const recordDislike = (contributor, tags = []) => {
+  if (!contributor) return;
+  const penalties = readPenalties();
+  const key = contributor.toLowerCase();
+  const current = Array.isArray(penalties[key]) ? penalties[key] : [];
+  const merged = Array.from(new Set([...current, ...tags.filter(Boolean)]));
+  penalties[key] = merged;
+  writePenalties(penalties);
+};
+
+const penaltyFor = (contributor, tags = []) => {
+  if (!contributor || !tags?.length) return 0;
+  const penalties = readPenalties();
+  const blocked = penalties[contributor.toLowerCase()];
+  if (!Array.isArray(blocked) || !blocked.length) return 0;
+  const overlaps = tags.some((t) => blocked.includes(t));
+  return overlaps ? 25 : 0; // nudge down disliked creator content with same category
+};
 
 const FALLBACK_RECOMMENDATIONS = [
   // {
@@ -76,22 +116,18 @@ const pickRecommendedProjects = (currentId, tags = [], source = []) => {
     updatedAt: pickUpdatedAt(item),
   }));
   const sharesTag = (item) => item.tags?.some((tag) => tags?.includes(tag));
+  const withScore = (item) => {
+    const penalty = penaltyFor(item.contributor, item.tags || item.categories || []);
+    return score7d(item.metrics7d, item.createdAt, item.updatedAt) - penalty;
+  };
 
   const ordered = [
     ...pool
       .filter(sharesTag)
-      .sort(
-        (a, b) =>
-          score7d(b.metrics7d, b.createdAt, b.updatedAt) -
-          score7d(a.metrics7d, a.createdAt, a.updatedAt)
-      ),
+      .sort((a, b) => withScore(b) - withScore(a)),
     ...pool
       .filter((item) => !sharesTag(item))
-      .sort(
-        (a, b) =>
-          score7d(b.metrics7d, b.createdAt, b.updatedAt) -
-          score7d(a.metrics7d, a.createdAt, a.updatedAt)
-      ),
+      .sort((a, b) => withScore(b) - withScore(a)),
   ];
 
   const unique = [];
@@ -123,7 +159,22 @@ const DetailSection = ({ text, images }) => {
 };
 
 // Comment Input Box
-const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit }) => (
+const CommentPanel = ({
+  commentText,
+  onCommentChange,
+  onCommentSubmit,
+  onReactProject,
+  onSaveProject,
+  likeState = DEFAULT_LIKE_STATE,
+  isSaved = false,
+}) => {
+  const safeLike = {
+    likes: Number.isFinite(likeState?.likes) ? likeState.likes : 0,
+    dislikes: Number.isFinite(likeState?.dislikes) ? likeState.dislikes : 0,
+    isLiked: !!likeState?.isLiked,
+    isDisliked: !!likeState?.isDisliked,
+  };
+  return (
   <div className="mt-10 w-full rounded-2xl border border-[#D35400] bg-white p-6 text-sm text-neutral-600">
     <h3 className="font-At text-[20px] font-bold leading-[20px] mb-4 text-black">
       อยากพูดคุย ชื่นชม หรือแนะนำ?
@@ -135,6 +186,65 @@ const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit }) => (
         onChange={(e) => onCommentChange(e.target.value)} // ✅ ADDED: Change handler
         className="w-full h-[120px] rounded-xl border border-[#D35400] p-4 text-sm outline-none resize-none placeholder-gray-400 text-black focus:ring-1 focus:ring-[#D35400]"
       />
+    </div>
+
+    <div className="mb-6 flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        onClick={() => onReactProject?.("like")}
+        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-IBM border shadow-sm transition ${
+          safeLike.isLiked
+            ? "bg-white border-yellow-500 shadow ring-2 ring-yellow-500/60"
+            : "bg-white border-neutral-300 hover:border-neutral-500"
+        }`}
+        aria-pressed={safeLike.isLiked}
+      >
+        <img
+          src={thumbsUpIcon}
+          alt="Like"
+          className="h-4 w-4"
+          style={{ filter: safeLike.isLiked ? ICON_FILTER_ORANGE : ICON_FILTER_NONE }}
+        />
+        <span className="font-semibold">Like</span>
+        <span className="text-xs text-black">({safeLike.likes})</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onReactProject?.("dislike")}
+        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-IBM border shadow-sm transition ${
+          safeLike.isDisliked
+            ? "bg-white border-yellow-500 shadow ring-2 ring-yellow-500/60"
+            : "bg-white border-neutral-300 hover:border-neutral-500"
+        }`}
+        aria-pressed={safeLike.isDisliked}
+      >
+        <img
+          src={thumbsDownIcon}
+          alt="Dislike"
+          className="h-4 w-4"
+          style={{ filter: safeLike.isDisliked ? ICON_FILTER_ORANGE : ICON_FILTER_NONE }}
+        />
+        <span className="font-semibold">Dislike</span>
+        <span className="text-xs text-black">({safeLike.dislikes})</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onSaveProject?.()}
+        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-IBM border shadow-sm transition ${
+          isSaved
+            ? "bg-white border-[#D35400] shadow ring-2 ring-[#D35400]/70"
+            : "bg-white border-neutral-300 hover:border-neutral-500"
+        }`}
+        aria-pressed={isSaved}
+      >
+        <img
+          src={savedIcon}
+          alt="Save"
+          className="h-4 w-4"
+          style={{ filter: isSaved ? ICON_FILTER_ORANGE : ICON_FILTER_NONE }}
+        />
+        <span className="font-semibold">{isSaved ? "Saved" : "Save"}</span>
+      </button>
     </div>
 
     <div className="flex justify-end">
@@ -153,64 +263,27 @@ const CommentPanel = ({ commentText, onCommentChange, onCommentSubmit }) => (
     </div>
   </div>
 );
+};
 
 // Component: Display previous comments
-const PreviousComments = ({ comments, onReact, currentUserId }) => {
-    return (
-      <div className="mt-8 w-full space-y-6">
-          {/* ✅ CHANGED: Added .reverse() to show newest first */}
-          {[...comments].reverse().map((comment, index) => {
-              // ✅ ADDED: Check if current user's ID is in the likes/dislikes arrays from DB
-              const isLiked = comment.likes?.includes(currentUserId);
-              const isDisliked = comment.dislikes?.includes(currentUserId);
+const PreviousComments = ({ comments }) => (
+  <div className="mt-8 w-full space-y-6">
+    {[...comments].reverse().map((comment, index) => (
+      <div key={comment.id || index} className="flex gap-4">
+        <div className="w-[56px] h-[56px] rounded-full flex-shrink-0 bg-neutral-200 overflow-hidden">
+          {comment.avatar ? <img src={comment.avatar} className="w-full h-full object-cover" /> : null}
+        </div>
 
-              return (
-                  <div key={comment.id || index} className="flex gap-4"> {/* ✅ CHANGED: Prefer comment.id as key */}
-                      <div className="w-[56px] h-[56px] rounded-full flex-shrink-0 bg-neutral-200 overflow-hidden">
-                        {/* ✅ ADDED: Real avatar rendering */}
-                        {comment.avatar ? <img src={comment.avatar} className="w-full h-full object-cover"/> : null}
-                      </div>
-                      
-                      <div className="flex-1 pt-1">
-                        <div className="font-bold text-black text-lg font-At leading-tight">{comment.author}</div>
-                        <p className="text-black font-IBM text-sm mt-1 whitespace-pre-wrap">
-                          {comment.text}
-                        </p>
-
-                        <div className="mt-2 inline-flex items-center gap-4">
-                          {/* Like Button */}
-                          <button 
-                              // ✅ CHANGED: Calls parent `onReact` instead of local handler
-                              onClick={() => onReact(comment.id, 'like')}
-                              // ✅ CHANGED: Styles based on `isLiked` derived from prop
-                              className={`flex items-center gap-1 text-sm transition ${isLiked ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-100'}`}
-                              title="Like"
-                          >
-                              <img src={thumbsUpIcon} alt="👍" className="h-4 w-auto cursor-pointer" />
-                              {/* ✅ ADDED: Count display */}
-                              <span className="text-xs">{comment.likes?.length || 0}</span>
-                          </button>
-                          
-                          {/* Dislike Button */}
-                          <button 
-                              // ✅ CHANGED: Calls parent `onReact`
-                              onClick={() => onReact(comment.id, 'dislike')}
-                              // ✅ CHANGED: Styles based on `isDisliked` derived from prop
-                              className={`flex items-center gap-1 text-sm transition ${isDisliked ? 'opacity-100 scale-110' : 'opacity-50 hover:opacity-100'}`}
-                              title="Dislike"
-                          >
-                              <img src={thumbsDownIcon} alt="👎" className="h-4 w-auto cursor-pointer" /> 
-                              {/* ✅ ADDED: Count display */}
-                              <span className="text-xs">{comment.dislikes?.length || 0}</span>
-                          </button>
-                        </div>
-                      </div>
-                  </div>
-              );
-          })} 
+        <div className="flex-1 pt-1">
+          <div className="font-bold text-black text-lg font-At leading-tight">{comment.author}</div>
+          <p className="text-black font-IBM text-sm mt-1 whitespace-pre-wrap">
+            {comment.text}
+          </p>
+        </div>
       </div>
-    );
-};
+    ))}
+  </div>
+);
 
 
 const DetailColumn = ({
@@ -229,9 +302,10 @@ const DetailColumn = ({
   onCommentChange, 
   onCommentSubmit,
   commentsList,
-  // Pass Emote state/handler down
-  activeEmote,
-  onEmoteClick,
+  likeState,
+  isSaved,
+  onReactProject,
+  onSaveProject,
 }) => (
   <article className="w-full rounded-2xl bg-white p-6 shadow-lg xl:w-[781px] xl:p-8">
     <h1 className="font-At text-[40px] leading-[45px] font-bold mb-4">{project.title}</h1>
@@ -342,12 +416,14 @@ const DetailColumn = ({
       </div>
     </div>
 
-    <CommentPanel 
+  <CommentPanel 
       commentText={commentText} 
       onCommentChange={onCommentChange} 
       onCommentSubmit={onCommentSubmit} 
-      activeEmote={activeEmote}
-      onEmoteClick={onEmoteClick}
+      onReactProject={onReactProject}
+      onSaveProject={onSaveProject}
+      likeState={likeState}
+      isSaved={isSaved}
     />
     <PreviousComments comments={commentsList} />
   </article>
@@ -360,7 +436,7 @@ const Sidebar = ({ recommended }) => (
       <h3 className="font-At text-[20px] font-semibold leading-[20px] mb-4">ดูงานอื่น ๆ ที่คล้ายกัน</h3>
       <div className="flex flex-col items-center gap-6">
         {recommended.map((item) => (
-          <ProjectCard key={item.id} project={item} />
+          <ProjectCard key={item.id} project={item} isOwner={false} />
         ))}
       </div>
     </div>
@@ -377,26 +453,40 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(!location.state?.project);
   const [notFound, setNotFound] = useState(false);
   const [catalog, setCatalog] = useState([]);
-  
+  const [likeState, setLikeState] = useState(DEFAULT_LIKE_STATE);
+  const [isSaved, setIsSaved] = useState(false);
+
   // === Comment State ===
   const [newCommentText, setNewCommentText] = useState("");
   const [commentsList, setCommentsList] = useState([]); 
-  const [activeEmote, setActiveEmote] = useState(null);
-
-  const handleEmoteClick = (emoteName) => {
-    // Toggle the active emote for the input box
-    setActiveEmote(prev => prev === emoteName ? null : emoteName);
-  };
 
 // Load comments when project loads
   useEffect(() => {
     if (!id) return;
     const loadComments = async () => {
-        const data = await getComments(id);
-        setCommentsList(data);
+        try {
+          const data = await getComments(id);
+          setCommentsList(Array.isArray(data) ? data : []);
+        } catch {
+          setCommentsList([]);
+        }
     };
     loadComments();
   }, [id]);
+
+  useEffect(() => {
+    // hydrate like/save state from project if available
+    if (!project) return;
+    const likes = Array.isArray(project.likes) ? project.likes.length : project.metrics?.likes || 0;
+    const dislikes = Array.isArray(project.dislikes) ? project.dislikes.length : 0;
+    setLikeState({
+      likes,
+      dislikes,
+      isLiked: !!project.isLiked,
+      isDisliked: !!project.isDisliked,
+    });
+    setIsSaved(Boolean(project.isSaved));
+  }, [project]);
 
   const handleCommentSubmit = async () => {
     const text = newCommentText.trim();
@@ -412,16 +502,60 @@ export default function ProjectDetailPage() {
         // Call API
         const newComment = await addComment(id, text);
         
-        if (newComment) {
-            setCommentsList(prev => [...prev, newComment]);
-            setNewCommentText("");
-            setActiveEmote(null);
+        if (!newComment) {
+          alert("Failed to post comment");
+          return;
         }
+        const safeComment = {
+          likes: [],
+          dislikes: [],
+          ...newComment,
+        };
+        setCommentsList(prev => [...prev, safeComment]);
+        setNewCommentText("");
     } catch {
         alert("Failed to post comment");
     }
   };
   // =====================
+
+  const handleProjectReact = async (action) => {
+    if (!expiresAt) {
+      alert("Please login to react");
+      return;
+    }
+    try {
+      const res = await interactProject(id, action);
+      if (res) {
+        const nextState = {
+          likes: res.likes ?? likeState.likes,
+          dislikes: res.dislikes ?? likeState.dislikes,
+          isLiked: !!res.isLiked,
+          isDisliked: !!res.isDisliked,
+        };
+        setLikeState(nextState);
+        if (action === "dislike" && nextState.isDisliked) {
+          recordDislike(project?.contributor, project?.tags || project?.categories || []);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!expiresAt) {
+      alert("Please login to save");
+      return;
+    }
+    try {
+      const saved = await toggleSaveProject(id);
+      const nextSaved = Boolean(saved);
+      setIsSaved(nextSaved);
+    } catch {
+      // ignore
+    }
+  };
 
 
   useEffect(() => {
@@ -504,7 +638,16 @@ export default function ProjectDetailPage() {
       : project?.tags) || [];
   const primaryTag = topicOrder[0] || null;
   const primaryBg = getTopicDetailBg(primaryTag) || "#D3C2CD";
-  const isOwner = useMemo(() => id?.startsWith("u-"), [id]);
+
+  const navState = location.state;
+  const isOwner = useMemo(() => {
+    if (typeof navState?.isOwner === "boolean") return navState.isOwner;
+    if (typeof project?.isOwner === "boolean") return project.isOwner;
+    // Fallback: locally created (u- prefix) or explicit contributor label
+    if (id?.startsWith("u-")) return true;
+    if ((project?.contributor || "").toLowerCase() === "you") return true;
+    return false;
+  }, [navState, project, id]);
 
   if (loading && !project) {
     return (
@@ -543,6 +686,9 @@ export default function ProjectDetailPage() {
       <div className="mx-auto w-full max-w-[1280px] px-4 pb-16 xl:px-0">
         <div className="mx-auto flex w-full flex-col items-center gap-10 xl:flex-row xl:items-start xl:justify-start xl:gap-0">
           <div className="w-full xl:w-[781px] xl:ml-[94px] xl:-mt-16">
+            {/*
+              Use a normalized like state so buttons always render.
+            */}
             <DetailColumn
               project={project}
               detail={detail}
@@ -558,10 +704,11 @@ export default function ProjectDetailPage() {
               commentText={newCommentText}
               onCommentChange={setNewCommentText}
               onCommentSubmit={handleCommentSubmit}
+              onReactProject={handleProjectReact}
+              onSaveProject={handleToggleSave}
+              likeState={likeState || DEFAULT_LIKE_STATE}
+              isSaved={isSaved}
               commentsList={commentsList}
-              // Pass Emote state/handler down
-              activeEmote={activeEmote}
-              onEmoteClick={handleEmoteClick}
             />
           </div>
 
