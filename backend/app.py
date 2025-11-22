@@ -8,7 +8,8 @@ from .config import Config
 # Models
 from .models.user import UserModel
 from .models.project import ProjectModel
-from .models.category import TagModel  # ✅ 1. เพิ่ม Import TagModel
+from .models.category import TagModel
+from .models.report import ReportModel
 
 # Auth & Services
 from .auth.google import GoogleOAuth
@@ -44,7 +45,8 @@ with app.app_context():
     # Initialize Models
     user_model = UserModel(mongo.db)
     project_model = ProjectModel(mongo.db)
-    tag_model = TagModel(mongo.db) # ✅ 2. สร้าง Instance ของ TagModel
+    tag_model = TagModel(mongo.db) 
+    report_model = ReportModel(mongo.db)
     
     # สร้าง indexes
     project_model.ensure_indexes()
@@ -62,8 +64,7 @@ with app.app_context():
 
 # เตรียมค่าสำหรับ routes
 init_auth_routes(google_oauth, user_model, otp_service)
-init_user_routes(user_model, project_model)
-
+init_user_routes(user_model, project_model, report_model)
 # ✅ 3. ส่ง tag_model เข้าไปใน init_project_routes ด้วย
 init_project_routes(project_model, tag_model, user_model)
 

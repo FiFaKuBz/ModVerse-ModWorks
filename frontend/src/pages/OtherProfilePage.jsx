@@ -8,7 +8,7 @@ import ProfileStats from "../components/Profile/ProfileStats";
 import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
-import Pagination from "../components/common/Pagination"; // ✅
+import Pagination from "../components/common/Pagination"; 
 import { listProjects } from "../api/projects";
 import { getProfileBySlug } from "../api/profile";
 
@@ -34,47 +34,22 @@ const normalizeCoauthors = (list = []) =>
     })
     .filter(Boolean);
 
-const SAMPLE_OTHER_CREATED = [
-  // {
-  //   id: "other-data-viz",
-  //   title: "Data Visualization Hub",
-  //   contributor: "Lara Cooper",
-  //   tags: ["UX/UI", "Database"],
-  //   image:
-  //     "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
-  // },
-  // {
-  //   id: "other-urban-mobility",
-  //   title: "Urban Mobility Planner",
-  //   contributor: "Lara Cooper",
-  //   tags: ["Transportation", "UX/UI"],
-  //   image:
-  //     "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
-  // },
-];
-
-const SAMPLE_OTHER_SAVED = [
-  // {
-  //   id: "other-ai-diagnostic",
-  //   title: "AI Diagnostic Assistant",
-  //   contributor: "Noah",
-  //   tags: ["Algorithm", "Digital Circuit"],
-  //   image:
-  //     "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
-  // },
-];
+const SAMPLE_OTHER_CREATED = [];
+const SAMPLE_OTHER_SAVED = [];
 
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g. /profile/lara-cooper
 
   const fallbackProfile = {
     avatar: "",
-    username: username ? username.replace(/-/g, " ") : "Lara Cooper",
-    description: "interested in Data Visualization",
-    followers: 100,
-    following: 10,
-    likes: 1000,
+    username: username ? username.replace(/-/g, " ") : "User",
+    description: "",
+    followers: 0,
+    following: 0,
+    likes: 0,
     showSavedPublicly: true,
+    isFollowing: false,
+    isBlocked: false,
   };
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -187,16 +162,22 @@ export default function OtherProfilePage() {
         {/* Profile header */}
         <ProfileHeader profile={resolvedProfile} />
 
-        {/* Stats & Actions (Share/Follow/Menu handled inside ProfileStats) */}
+        {/* Stats & Actions */}
         <ProfileStats
           followers={resolvedProfile.followers}
           following={resolvedProfile.following}
-          likes={resolvedProfile.likes}
+          likes={resolvedProfile.likes || resolvedProfile.total_likes || 0}
           showLikes
           showEdit={false}
           showFollow
           showMenu
           onShare={() => setIsShareOpen(true)}
+          
+          // [FIX] Pass username and initial status for Follow logic
+          username={resolvedProfile.username}
+          isFollowingInitial={resolvedProfile.isFollowing}
+
+          isBlockedInitial={resolvedProfile.isBlocked}
         />
 
         {/* Tabs */}
@@ -227,7 +208,7 @@ export default function OtherProfilePage() {
             <div className="mt-8 flex justify-center">
               <Pagination
                 totalPages={totalPages}
-                currentPage={safePage}   // ensure prop names match your Pagination component
+                currentPage={safePage}
                 onChange={setPage}
               />
             </div>
@@ -244,4 +225,3 @@ export default function OtherProfilePage() {
     </div>
   );
 }
-
