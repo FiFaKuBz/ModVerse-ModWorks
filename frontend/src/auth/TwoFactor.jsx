@@ -1,48 +1,27 @@
-// src/auth/TwoFactorMock.jsx (Updated to connect to API)
 import { useEffect, useRef, useState } from "react";
 
-const STATIC_OTP = "000000";
+// Helper function สำหรับเรียก API โดยเฉพาะสำหรับ Auth
+const authRequest = async (endpoint, options = {}) => {
+  const res = await fetch(`/api/auth${endpoint}`, {
+    headers: { "Content-Type": "application/json" },
+    credentials: "include", // สำคัญ: ใช้สำหรับส่ง Session Cookie
+    ...options,
+  });
 
+  // Backend response for error is {"ok": false, "error": "message"}
+  const data = await res.json(); 
 
-// Helper function to simulate a mock API request with latency (800ms)
-// This completely replaces the need for the original fetch-based authRequest.
-const mockRequest = (successData, failureMessage, isSuccess = true) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (isSuccess) {
-                // Simulate a successful API response structure
-                resolve({ ok: true, ...successData });
-            } else {
-                // Simulate an API error response structure
-                reject(new Error(failureMessage));
-            }
-        }, 100); // Simulate 800ms network latency
-    });
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || "Verification failed");
+  }
+  return data;
 };
-
-
-// // Helper function สำหรับเรียก API โดยเฉพาะสำหรับ Auth
-// const authRequest = async (endpoint, options = {}) => {
-//   const res = await fetch(`/api/auth${endpoint}`, {
-//     headers: { "Content-Type": "application/json" },
-//     credentials: "include", // สำคัญ: ใช้สำหรับส่ง Session Cookie
-//     ...options,
-//   });
-
-//   // Backend response for error is {"ok": false, "error": "message"}
-//   const data = await res.json(); 
-
-//   if (!res.ok || data.ok === false) {
-//     throw new Error(data.error || "Verification failed");
-//   }
-//   return data;
-// };
 
 export default function TwoFactorAuth({
   onSuccess,
   onBack,
   onMaxFail,
-  maxAttempts = 5, // Backend handles attempts, but this tracks UI state
+  maxAttempts = 5,
 }) {
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
@@ -54,44 +33,19 @@ export default function TwoFactorAuth({
     inputRef.current?.focus();
   }, []);
 
+  // ✅ ใช้ Real API (เรียก authRequest)
+  // API Call: Verify OTP
+  const verifyOtpApi = (code) =>
+    authRequest("/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
 
-  	// Mock API Call: Verify OTP
-	const verifyOtpApi = (inputCode) => {
-		// Check against the static success code
-		if (inputCode === STATIC_OTP) {
-			console.log("Mock Success: STATIC_OTP matched.");
-			return mockRequest({ message: "Verification successful" });
-		}
-
-		// Simulate failure for any other code
-		console.log("Mock Failure: Invalid code.");
-		return mockRequest(
-			null,
-			"Invalid or expired OTP",
-			false
-		);
-	};
-
-	// Mock API Call: Resend OTP
-	const resendOtpApi = () => {
-		// Resending always succeeds in the mock environment
-		console.log("Mock Resend: New code sent (static code 000000).");
-		return mockRequest({ message: "New OTP generated and sent" });
-	};
-	// ------------------------------------------
-
-  // // API Call: Verify OTP
-  // const verifyOtpApi = (code) =>
-  //   authRequest("/verify-otp", {
-  //     method: "POST",
-  //     body: JSON.stringify({ code }),
-  //   });
-
-  // // API Call: Resend OTP
-  // const resendOtpApi = () => 
-  //   authRequest("/resend-otp", {
-  //     method: "POST",
-  //   });
+  // API Call: Resend OTP
+  const resendOtpApi = () => 
+    authRequest("/resend-otp", {
+      method: "POST",
+    });
 
   const submit = async (e) => {
     e?.preventDefault?.();
@@ -102,12 +56,12 @@ export default function TwoFactorAuth({
 
     try {
       await verifyOtpApi(code);
-      onSuccess?.(); // Login successful, navigate to /showcase
+      onSuccess?.(); // Login successful
     } catch (error) {
       const next = Math.max(0, attemptsLeft - 1);
       setAttemptsLeft(next);
       
-      // การจัดการข้อความแสดงผลจากการตอบกลับของ Backend
+      // จัดการ Error message
       const errorMessage = error.message.includes("Invalid or expired OTP") 
         ? "Incorrect or expired code." 
         : error.message;
@@ -116,7 +70,7 @@ export default function TwoFactorAuth({
         setErr("Too many incorrect attempts. Returning to sign in…");
         setTimeout(() => onMaxFail?.(), 2000); 
       } else {
-        setErr(errorMessage + ` ${next} attempt(s) left.`);
+        setErr(`${errorMessage} (${next} attempt(s) left)`);
       }
     } finally {
       setIsSending(false);

@@ -1,11 +1,11 @@
 // Centralized styles for topic/category chips and surfaces.
 const TOPIC_COLORS = {
-  "UX/UI": { chip: "bg-mPurple text-black", detailBg: "mPurple" },
-  "Transportation": { chip: "bg-mBlue text-black", detailBg: "mBlue" },
-  "Database": { chip: "bg-mYellow text-black", detailBg: "mYellow" },
-  "Algorithm": { chip: "bg-mGreen text-black", detailBg: "mGreen" },
-  "Digital Circuit": { chip: "bg-mPink text-black", detailBg: "mPink" },
-  "Data Visualization": { chip: "bg-mSalmon text-black", detailBg: "mSalmon" },
+  "UX/UI": { chip: "bg-mPurple text-black", detailBg: "var(--color-mPurple)" },
+  "Transportation": { chip: "bg-mBlue text-black", detailBg: "var(--color-mBlue)" },
+  "Database": { chip: "bg-mYellow text-black", detailBg: "var(--color-mYellow)" },
+  "Algorithm": { chip: "bg-mGreen text-black", detailBg: "var(--color-mGreen)" },
+  "Digital Circuit": { chip: "bg-mPink text-black", detailBg: "var(--color-mPink)" },
+  "Data Visualization": { chip: "bg-mSalmon text-black", detailBg: "var(--color-mSalmon)" },
 };
 
 export const getTopicChipClass = (topic) => TOPIC_COLORS[topic]?.chip;

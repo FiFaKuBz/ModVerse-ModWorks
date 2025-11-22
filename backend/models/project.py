@@ -1,15 +1,15 @@
 # backend/models/project.py
 from datetime import datetime, timezone
 from bson import ObjectId
-
-ALLOWED_SECTIONS = {"title","objective","goals","methods","outcomes","next_steps"}
-ALLOWED_ASSET_TYPES = {"image","pdf","video","audio","link"}
+import base64
+import io
+from PIL import Image
+import uuid
 
 class ProjectModel:
     def __init__(self, db):
         self.col = db.projects
         print(f"✅ ProjectModel initialized with collection: {self.col.name}")
-        print(f"   Database: {db.name}")
 
     def ensure_indexes(self):
         print("Creating indexes for projects collection...")
@@ -17,27 +17,62 @@ class ProjectModel:
         self.col.create_index([("visibility", 1), ("status", 1), ("created_at", -1)])
         print("✅ Indexes created successfully")
 
+    def _resize_image_base64(self, image_data):
+        if not image_data or not isinstance(image_data, str) or "base64," not in image_data:
+            return image_data 
+
+        try:
+            header, encoded = image_data.split("base64,", 1)
+            img_bytes = base64.b64decode(encoded)
+            img = Image.open(io.BytesIO(img_bytes))
+            img.thumbnail((1920, 1080))
+            
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=85)
+            new_encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            return f"data:image/jpeg;base64,{new_encoded}"
+
+        except Exception as e:
+            print(f"❌ Image resize failed: {e}")
+            return image_data
+
     def create(self, owner_id: ObjectId, payload: dict) -> ObjectId:
         print("\n--- ProjectModel.create() ---")
-        print(f"Owner ID: {owner_id}")
-        print(f"Payload: {payload}")
         
+        original_image = payload.get("image", "")
+        resized_image = self._resize_image_base64(original_image)
+        detail = payload.get("detail", {})
+
         now = datetime.now(timezone.utc)
+
+        # [FIX] Check both 'public' (Frontend) and 'isPublic' keys
+        is_public = payload.get("isPublic", True)
+        visibility_status = "public" if is_public else "private"
+
         doc = {
             "owner_id": owner_id,
-            "title": payload["title"].strip(),
-            "summary": payload.get("summary","").strip(),
-            "description": payload.get("description","").strip(),
-            "objective": payload.get("objective","").strip(),
-            "goals": payload.get("goals","").strip(),
-            "methods": payload.get("methods","").strip(),
-            "results": payload.get("results","").strip(),
-            "outcomes": payload.get("outcomes","").strip(),
-            "next_steps": payload.get("next_steps","").strip(),
-            "tags": [tag.strip() for tag in payload.get("tags", [])] if isinstance(payload.get("tags"), list) else [],
-            "visibility": payload.get("visibility","private"),
-            "status": payload.get("status","draft"),
-            "assets": [],
+            "title": payload.get("title", "").strip(),
+            "image": resized_image,
+            "detail": {
+                "topic": detail.get("topic", ""),
+                "startPoint": detail.get("startPoint", ""),
+                "goal": detail.get("goal", ""),
+                "process": detail.get("process", ""),
+                "result": detail.get("result", ""),
+                "takeaway": detail.get("takeaway", ""),
+                "nextStep": detail.get("nextStep", ""),
+            },
+            "tags": payload.get("tags", []),
+            # "categories": payload.get("categories", []),
+            "contributor": payload.get("contributor", "Unknown"),
+            "coauthors": payload.get("coauthors", []),
+            
+            "visibility": visibility_status,
+            "allow_comments": payload.get("comments", True),
+
             "metrics": {"views": 0, "likes": 0},
             "created_at": now,
             "updated_at": now,
@@ -45,17 +80,9 @@ class ProjectModel:
             "is_deleted": False,
         }
         
-        print(f"Document to insert: {doc}")
-        
         try:
             res = self.col.insert_one(doc)
             print(f"✅ Insert successful! ID: {res.inserted_id}")
-            print(f"   Acknowledged: {res.acknowledged}")
-            
-            # ตรวจสอบว่าเข้า DB จริงหรือไม่
-            verify = self.col.find_one({"_id": res.inserted_id})
-            print(f"   Verification: {verify is not None}")
-            
             return res.inserted_id
         except Exception as e:
             print(f"❌ Insert failed: {e}")
@@ -65,18 +92,39 @@ class ProjectModel:
         return self.col.find_one({"_id": pid, "is_deleted": {"$ne": True}})
 
     def update(self, pid: ObjectId, patch: dict) -> bool:
-        allowed = {"title","summary","description","objective","goals","methods","results","outcomes","next_steps","tags","visibility","status"}
-        
-        if "tags" in patch:
-            if isinstance(patch["tags"], list):
-                patch["tags"] = [tag.strip() for tag in patch["tags"] if isinstance(tag, str)]
-            else:
-                patch["tags"] = []
 
-        patch = {k:v for k,v in (patch or {}).items() if k in allowed}
-        if not patch: return False
-        patch["updated_at"] = datetime.now(timezone.utc)
-        r = self.col.update_one({"_id": pid, "is_deleted": {"$ne": True}}, {"$set": patch})
+        if "public" in patch:
+            patch["visibility"] = "public" if patch["public"] else "private"
+            del patch["public"] # Remove boolean key before saving
+        elif "isPublic" in patch:
+            patch["visibility"] = "public" if patch["isPublic"] else "private"
+            del patch["isPublic"]
+
+        if "comments" in patch:
+            patch["allow_comments"] = patch["comments"]
+            del patch["comments"]
+
+        allowed = {
+            "title", "topic", "description", "objective", "goals", 
+            "methods", "results", "outcomes", "next_steps", 
+            "categories", "tags", "visibility", "status", "detail",
+            "image", "coauthors", "allow_comments"
+        }
+        
+        # Filter only allowed fields
+        clean_patch = {k:v for k,v in (patch or {}).items() if k in allowed}
+        
+        if not clean_patch: return False
+
+        if "image" in clean_patch and clean_patch["image"]:
+            clean_patch["image"] = self._resize_image_base64(clean_patch["image"])
+
+        clean_patch["updated_at"] = datetime.now(timezone.utc)
+        
+        r = self.col.update_one(
+            {"_id": pid, "is_deleted": {"$ne": True}}, 
+            {"$set": clean_patch}
+        )
         return r.matched_count == 1
 
     def soft_delete(self, pid: ObjectId) -> bool:
@@ -100,29 +148,106 @@ class ProjectModel:
         if field not in {"views","likes"}: return False
         r = self.col.update_one({"_id": pid}, {"$inc": {f"metrics.{field}": n}})
         return r.matched_count == 1
-
-    def replace_section_asset(self, pid: ObjectId, user_id: ObjectId, section: str, asset: dict) -> bool:
-        if section not in ALLOWED_SECTIONS: raise ValueError("invalid section")
-        if asset.get("type") not in ALLOWED_ASSET_TYPES: raise ValueError("invalid asset type")
+    
+    def add_comment(self, project_id: ObjectId, user_data: dict, text: str) -> dict:
+        comment_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
-        r = self.col.update_one(
-            {"_id": pid},
+        
+        comment = {
+            "id": comment_id,
+            "user_id": str(user_data["_id"]),
+            "author": user_data.get("name") or user_data.get("username"),
+            "avatar": user_data.get("avatar"),
+            "text": text,
+            "created_at": now,
+            "likes": [],
+            "dislikes": []
+        }
+
+        result = self.col.update_one(
+            {"_id": project_id},
             {
-                "$pull": {"assets": {"section": section}},
-                "$push": {"assets": {
-                    "name": asset["name"], "type": asset["type"], "url": asset["url"],
-                    "mime": asset.get("mime"), "size": asset.get("size"),
-                    "section": section, "caption": asset.get("caption",""),
-                    "alt": asset.get("alt",""), "order": 0, "source": asset.get("source","upload"),
-                    "created_at": now, "created_by": user_id
-                }},
-                "$set": {"updated_at": now}
+                "$push": {"comments": comment},
+                "$inc": {"metrics.comments": 1} # Update the counter
             }
         )
-        return r.matched_count == 1
+        
+        return comment if result.modified_count > 0 else None
 
-    def remove_section_asset(self, pid: ObjectId, section: str) -> bool:
-        r = self.col.update_one({"_id": pid},
-            {"$pull": {"assets": {"section": section}},
-             "$set": {"updated_at": datetime.now(timezone.utc)}})
-        return r.matched_count == 1
+    # ADD THIS METHOD
+    def get_comments(self, project_id: ObjectId):
+        project = self.col.find_one(
+            {"_id": project_id}, 
+            {"comments": 1, "_id": 0}
+        )
+        return project.get("comments", []) if project else []
+    
+    def get_total_likes(self, owner_id: ObjectId) -> int:
+        """
+        Calculates the sum of likes for all projects owned by a specific user.
+        """
+        pipeline = [
+            # 1. Filter: Find projects by this owner that aren't deleted
+            {"$match": {"owner_id": owner_id, "is_deleted": {"$ne": True}}},
+            # 2. Group: Sum the 'metrics.likes' field
+            {"$group": {"_id": None, "total": {"$sum": "$metrics.likes"}}}
+        ]
+        
+        # Execute aggregation
+        result = list(self.col.aggregate(pipeline))
+        
+        # Return the total or 0 if no projects found
+        return result[0]["total"] if result else 0
+    
+def toggle_interaction(self, pid: ObjectId, user_id: str, action: str):
+        """
+        action: 'like' or 'dislike'
+        Returns dict with new counts and user status
+        """
+        project = self.col.find_one({"_id": pid})
+        if not project:
+            return None
+            
+        likes = project.get("likes", [])
+        dislikes = project.get("dislikes", [])
+        
+        is_liked = user_id in likes
+        is_disliked = user_id in dislikes
+        
+        if action == "like":
+            if is_liked:
+                # Toggle Off
+                self.col.update_one({"_id": pid}, {"$pull": {"likes": user_id}, "$inc": {"metrics.likes": -1}})
+                is_liked = False
+            else:
+                # Toggle On (and remove dislike if exists)
+                update = {"$addToSet": {"likes": user_id}, "$inc": {"metrics.likes": 1}}
+                if is_disliked:
+                    update["$pull"] = {"dislikes": user_id}
+                    is_disliked = False
+                self.col.update_one({"_id": pid}, update)
+                is_liked = True
+                
+        elif action == "dislike":
+            if is_disliked:
+                # Toggle Off
+                self.col.update_one({"_id": pid}, {"$pull": {"dislikes": user_id}})
+                is_disliked = False
+            else:
+                # Toggle On (and remove like if exists)
+                update = {"$addToSet": {"dislikes": user_id}}
+                if is_liked:
+                    update["$pull"] = {"likes": user_id}
+                    update["$inc"] = {"metrics.likes": -1} # Decrease like count
+                    is_liked = False
+                self.col.update_one({"_id": pid}, update)
+                is_disliked = True
+
+        # Get fresh counts
+        updated = self.col.find_one({"_id": pid}, {"likes": 1, "dislikes": 1, "metrics": 1})
+        return {
+            "likes": len(updated.get("likes", [])),
+            "dislikes": len(updated.get("dislikes", [])),
+            "isLiked": is_liked,
+            "isDisliked": is_disliked
+        }

@@ -16,12 +16,13 @@ const slugify = (value = "") =>
 
 const defaultProfile = () => ({
     avatar: "",
-    username: "Username",
+    username: "default-user",
     email: "Email@gmail.com",
     about: "description",
     followers: 0,
     following: 0,
     likes: 0,
+    total_likes: 0,
     showSavedPublicly: true,
     twoFactorEnabled: true,
 });
@@ -58,13 +59,17 @@ const request = async(url, options) => {
 // Fetch the currently authenticated user's profile.
 export async function getProfile() {
     try {
-        const remote = await request(API_PROFILE, { method: "GET" });
+        const response = await request(API_PROFILE, { method: "GET" });
+        // Backend returns { auth: true, user: {...} } or just user object depending on route
+        // Adjusting based on your backend: whoami returns { auth: true, user: ... }
+        const remote = response.user || response;
+
         if (remote) {
             writeLocalProfile(remote);
             return remote;
         }
-    } catch {
-        // fall through
+    } catch (e) {
+        console.warn("Fetch profile failed, using local", e);
     }
     return readLocalProfile();
 }
@@ -73,17 +78,24 @@ export async function getProfile() {
 export async function updateProfile(updates) {
     const payload = updates && typeof updates === "object" ? updates : {};
     try {
-        const remote = await request(`${API_PROFILE}/update`, {
-            method: "PATCH",
+        // [FIX] Changed PATCH to PUT to match Backend Route
+        const response = await request(`${API_PROFILE}/update`, {
+            method: "PUT",
             body: JSON.stringify(payload),
         });
+
+        const remote = response.user || response;
+
         if (remote) {
             writeLocalProfile(remote);
             return remote;
         }
-    } catch {
-        // fall through to local
+    } catch (e) {
+        console.error("Update profile failed", e);
+        throw e; // Re-throw so UI knows it failed
     }
+
+    // Optimistic update fallback (only if API totally fails connectivity)
     const next = {...readLocalProfile(), ...payload };
     writeLocalProfile(next);
     return next;
@@ -100,4 +112,31 @@ export async function getProfileBySlug(slug) {
     }
     const local = readLocalProfile();
     return slugify(local.username) === slug ? local : null;
+}
+
+export async function followUser(username) {
+    try {
+        // Note: Assuming your user routes are mapped to /api/users in backend/app.py
+        const res = await fetch(`/api/users/${username}/follow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include"
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
+export async function unfollowUser(username) {
+    try {
+        const res = await fetch(`/api/users/${username}/unfollow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include"
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
 }

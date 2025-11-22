@@ -50,7 +50,7 @@ useEffect(() => {
                 setBanner("Bypass successful! Redirecting...");
                 
                 // 3. THE REDIRECT STEP: Now runs within the effect's async chain
-                navigate("/showcase", { replace: true });
+                navigate("/", { replace: true });
 
             } catch (error) {
                 console.error("Full bypass failed:", error);
@@ -58,6 +58,13 @@ useEffect(() => {
             }
         };
         runBypass();
+    }
+
+    // ✅ FIX: Handle standard login success (e.g. from Google OAuth callback)
+    const loginSuccess = searchParams.get("login_success") === "true";
+    if (loginSuccess) {
+        login();
+        navigate("/", { replace: true });
     }
 
     // ส่วนของ Logic เดิม (auth=ok)
@@ -73,7 +80,7 @@ useEffect(() => {
 
   const handle2FASuccess = () => {
     login();
-    navigate("/showcase", { replace: true });
+    navigate("/", { replace: true });
   };
 
   const handleMaxFail = () => {

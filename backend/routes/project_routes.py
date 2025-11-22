@@ -1,157 +1,128 @@
+# backend/routes/project_routes.py
 from flask import Blueprint, request, jsonify, session
 from bson import ObjectId
 from bson.errors import InvalidId
 from ..auth.decorators import login_required
+import uuid
+from datetime import datetime, timezone
 
 project_bp = Blueprint("project", __name__)
 
-# จะถูก inject จาก app.py
 project_model = None
+user_model = None
+tag_model = None
+interaction_model = None
 
-def init_project_routes(model):
-    """เตรียมค่าที่ต้องใช้ใน routes"""
-    global project_model
-    project_model = model
+def init_project_routes(p_model, t_model, u_model, i_model):
+    global project_model, tag_model, user_model, interaction_model
+    project_model = p_model
+    tag_model = t_model
+    user_model = u_model
+    interaction_model = i_model
+
+# ✅ แก้ไขคำผิดจาก categorys เป็น categories
+@project_bp.route("/categories", methods=["GET"])
+def get_all_tags():
+    """
+    ดึงรายชื่อ Tags/Categories ทั้งหมด
+    """
+    try:
+        if not tag_model:
+            return jsonify({"error": "Tag model not initialized"}), 500 
+        tags = tag_model.list_all()
+        return jsonify({"success": True, "tags": tags}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ==================== CREATE ====================
 @project_bp.route("/", methods=["POST"])
 @login_required
 def create_project():
-    """
-    สร้างโปรเจคใหม่
-    """
     print("\n" + "="*50)
     print("CREATE PROJECT REQUEST RECEIVED")
-    print("="*50)
     
     try:
-        # Debug 1: ตรวจสอบ session
-        print("1. Session data:", dict(session))
-        print("2. User in session:", session.get("user"))
-        
         if "user" not in session:
-            print("❌ ERROR: No user in session!")
             return jsonify({"error": "Not authenticated"}), 401
-        
-        # Debug 2: ตรวจสอบ user_id
-        user_id_str = session["user"]["id"]
-        print("3. User ID (string):", user_id_str)
-        
-        try:
-            user_id = ObjectId(user_id_str)
-            print("4. User ID (ObjectId):", user_id)
-        except Exception as e:
-            print("❌ ERROR converting to ObjectId:", e)
-            return jsonify({"error": "Invalid user ID"}), 400
-        
-        # Debug 3: ตรวจสอบ request data
+        user_id = ObjectId(session["user"]["id"])
         data = request.get_json()
-        print("5. Request data:", data)
-        print("6. Content-Type:", request.headers.get("Content-Type"))
-        
+        if "user" in session:
+            data["contributor"] = session["user"].get("username") or session["user"].get("name")
+
         if not data:
-            print("❌ ERROR: No JSON data received!")
             return jsonify({"error": "No data provided"}), 400
-        
         if not data.get("title"):
-            print("❌ ERROR: No title in data!")
             return jsonify({"error": "Title is required"}), 400
         
-        # Debug 4: สร้างโปรเจค
-        print("7. Creating project...")
+        # สร้างโปรเจกต์
         project_id = project_model.create(user_id, data)
-        print("✅ Project created with ID:", project_id)
         
-        # Debug 5: ตรวจสอบว่าข้อมูลเข้า DB จริง
-        created_project = project_model.get(project_id)
-        print("8. Verify project in DB:", created_project is not None)
-        
-        print("="*50)
-        print("SUCCESS!")
-        print("="*50 + "\n")
+        print(f"✅ Project created successfully: {project_id}")
         
         return jsonify({
             "success": True,
-            "project_id": str(project_id),
+            "id": str(project_id),
             "message": "Project created successfully"
         }), 201
         
     except InvalidId:
         return jsonify({"error": "Invalid user ID"}), 400
     except Exception as e:
+        print(f"❌ Error creating project: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ==================== READ ====================
 @project_bp.route("/", methods=["GET"])
 @login_required
 def list_my_projects():
-    """
-    ดูรายการโปรเจคของตัวเอง
-    
-    Query Parameters:
-    - q: ค้นหาตามชื่อโปรเจค (optional)
-    
-    Example: /?q=my%20project
-    """
     try:
         user_id = ObjectId(session["user"]["id"])
         search_query = request.args.get("q")
         
         projects = project_model.list_owned(user_id, search_query)
         
-        # แปลง ObjectId เป็น string สำหรับ JSON
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
+            if "created_at" in p and p["created_at"]:
+                p["created_at"] = p["created_at"].isoformat()
+            if "updated_at" in p and p["updated_at"]:
+                p["updated_at"] = p["updated_at"].isoformat()
         
         return jsonify({
             "success": True,
             "count": len(projects),
             "projects": projects
         }), 200
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @project_bp.route("/public", methods=["GET"])
 def list_public_projects():
-    """
-    ดูรายการโปรเจคสาธารณะ (ไม่ต้องล็อกอิน)
-    
-    Query Parameters:
-    - q: ค้นหาตามชื่อ (optional)
-    - status: กรองตามสถานะ (optional)
-    
-    Example: /public?status=completed&q=research
-    """
     try:
         search_query = request.args.get("q")
         status_filter = request.args.get("status")
         
         projects = project_model.list_public(search_query, status_filter)
         
-        # แปลง ObjectId เป็น string
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
+            if "created_at" in p and p["created_at"]:
+                p["created_at"] = p["created_at"].isoformat()
+            if "updated_at" in p and p["updated_at"]:
+                p["updated_at"] = p["updated_at"].isoformat()
         
         return jsonify({
             "success": True,
             "count": len(projects),
             "projects": projects
         }), 200
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @project_bp.route("/<project_id>", methods=["GET"])
 def get_project(project_id):
-    """
-    ดูรายละเอียดโปรเจคเดียว
-    
-    - ถ้าเป็นโปรเจคสาธารณะ: ใครก็ดูได้
-    - ถ้าเป็นโปรเจคส่วนตัว: เฉพาะเจ้าของเท่านั้น
-    """
     try:
         pid = ObjectId(project_id)
         project = project_model.get(pid)
@@ -159,24 +130,27 @@ def get_project(project_id):
         if not project:
             return jsonify({"error": "Project not found"}), 404
         
-        # ตรวจสอบสิทธิ์การเข้าถึง
-        if project["visibility"] == "private":
-            # ต้องเป็นเจ้าของโปรเจค
+        # ✅ ตรวจสอบสิทธิ์: ถ้าเป็น private ต้องเป็นเจ้าของเท่านั้น
+        if project.get("visibility") == "private":
             if "user" not in session or str(project["owner_id"]) != session["user"]["id"]:
                 return jsonify({"error": "Access denied"}), 403
         
-        # เพิ่มจำนวนการดู
         project_model.inc_metric(pid, "views")
         
-        # แปลง ObjectId เป็น string
         project["_id"] = str(project["_id"])
         project["owner_id"] = str(project["owner_id"])
+        if "created_at" in project and project["created_at"]:
+            project["created_at"] = project["created_at"].isoformat()
+        if "updated_at" in project and project["updated_at"]:
+            project["updated_at"] = project["updated_at"].isoformat()
         
-        return jsonify({
-            "success": True,
-            "project": project
-        }), 200
+        # Get user interaction status
+        user_id = ObjectId(session["user"]["id"]) if "user" in session else None
+        interactions = interaction_model.get_user_interactions(user_id, pid)
+        project.update(interactions)
         
+        return jsonify(project), 200
+    
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
     except Exception as e:
@@ -186,35 +160,21 @@ def get_project(project_id):
 @project_bp.route("/<project_id>", methods=["PUT", "PATCH"])
 @login_required
 def update_project(project_id):
-    """
-    แก้ไขโปรเจค (เฉพาะเจ้าของเท่านั้น)
-    
-    Request Body: ส่งเฉพาะฟิลด์ที่ต้องการแก้ไข
-    {
-        "title": "ชื่อใหม่",
-        "status": "completed",
-        ...
-    }
-    """
     try:
         pid = ObjectId(project_id)
         user_id = session["user"]["id"]
         
-        # ตรวจสอบว่าโปรเจคมีอยู่จริง
         project = project_model.get(pid)
         if not project:
             return jsonify({"error": "Project not found"}), 404
         
-        # ตรวจสอบว่าเป็นเจ้าของโปรเจคหรือไม่
         if str(project["owner_id"]) != user_id:
             return jsonify({"error": "Access denied"}), 403
         
-        # รับข้อมูลที่ต้องการอัปเดต
         data = request.get_json()
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # อัปเดตโปรเจค
         success = project_model.update(pid, data)
         
         if not success:
@@ -224,7 +184,6 @@ def update_project(project_id):
             "success": True,
             "message": "Project updated successfully"
         }), 200
-        
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
     except Exception as e:
@@ -234,23 +193,17 @@ def update_project(project_id):
 @project_bp.route("/<project_id>", methods=["DELETE"])
 @login_required
 def delete_project(project_id):
-    """
-    ลบโปรเจค (soft delete - เฉพาะเจ้าของเท่านั้น)
-    """
     try:
         pid = ObjectId(project_id)
         user_id = session["user"]["id"]
         
-        # ตรวจสอบว่าโปรเจคมีอยู่จริง
         project = project_model.get(pid)
         if not project:
             return jsonify({"error": "Project not found"}), 404
         
-        # ตรวจสอบว่าเป็นเจ้าของโปรเจคหรือไม่
         if str(project["owner_id"]) != user_id:
             return jsonify({"error": "Access denied"}), 403
         
-        # ลบโปรเจค (soft delete)
         success = project_model.soft_delete(pid)
         
         if not success:
@@ -260,33 +213,95 @@ def delete_project(project_id):
             "success": True,
             "message": "Project deleted successfully"
         }), 200
-        
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ==================== BONUS: Metrics ====================
+# ==================== INTERACTIONS ====================
 @project_bp.route("/<project_id>/like", methods=["POST"])
 @login_required
 def like_project(project_id):
-    """เพิ่มจำนวนไลค์ (bonus feature)"""
     try:
         pid = ObjectId(project_id)
-        project = project_model.get(pid)
-        
-        if not project:
-            return jsonify({"error": "Project not found"}), 404
-        
-        # เพิ่มจำนวนไลค์
-        project_model.inc_metric(pid, "likes")
-        
-        return jsonify({
-            "success": True,
-            "message": "Project liked"
-        }), 200
-        
+        user_id = ObjectId(session["user"]["id"])
+        result = interaction_model.toggle_like(user_id, pid)
+        return jsonify({"success": True, "data": result}), 200
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@project_bp.route("/<project_id>/dislike", methods=["POST"])
+@login_required
+def dislike_project(project_id):
+    try:
+        pid = ObjectId(project_id)
+        user_id = ObjectId(session["user"]["id"])
+        result = interaction_model.toggle_dislike(user_id, pid)
+        return jsonify({"success": True, "data": result}), 200
+    except InvalidId:
+        return jsonify({"error": "Invalid project ID"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@project_bp.route("/<project_id>/save", methods=["POST"])
+@login_required
+def save_project(project_id):
+    try:
+        pid = ObjectId(project_id)
+        user_id = ObjectId(session["user"]["id"])
+        result = interaction_model.toggle_save(user_id, pid)
+        return jsonify({"success": True, "data": result}), 200
+    except InvalidId:
+        return jsonify({"error": "Invalid project ID"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+# ==================== COMMENTS ====================
+@project_bp.route("/<project_id>/comments", methods=["GET"])
+def get_project_comments(project_id):
+    try:
+        pid = ObjectId(project_id)
+        # Check if project_model is actually loaded
+        if not project_model:
+             return jsonify({"error": "Project model not initialized"}), 500
+
+        comments = project_model.get_comments(pid)
+        return jsonify({"success": True, "comments": comments}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@project_bp.route("/<project_id>/comments", methods=["POST"])
+@login_required
+def add_comment(project_id):
+    try:
+        # Check if user_model is loaded (This is where your error happened)
+        if not user_model:
+            print("❌ Error: user_model is None in project_routes")
+            return jsonify({"error": "Internal Server Error: User model not loaded"}), 500
+
+        pid = ObjectId(project_id)
+        data = request.get_json()
+        text = data.get("text")
+        
+        if not text:
+            return jsonify({"error": "Comment text is required"}), 400
+
+        # Get current user info to embed in the comment
+        # Now user_model is properly initialized!
+        user = user_model.get_user_by_id(ObjectId(session["user"]["id"]))
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        new_comment = project_model.add_comment(pid, user, text)
+        
+        if new_comment:
+            return jsonify({"success": True, "comment": new_comment}), 201
+        else:
+            return jsonify({"error": "Failed to add comment"}), 400
+            
+    except Exception as e:
+        print(f"❌ Add comment error: {e}")
         return jsonify({"error": str(e)}), 500

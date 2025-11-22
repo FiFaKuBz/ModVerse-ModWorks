@@ -8,7 +8,7 @@ import ProfileStats from "../components/Profile/ProfileStats";
 import ProfileTabs from "../components/Profile/ProfileTabs";
 import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
-import Pagination from "../components/common/Pagination"; // ✅
+import Pagination from "../components/common/Pagination"; 
 import { listProjects } from "../api/projects";
 import { getProfileBySlug } from "../api/profile";
 
@@ -34,52 +34,26 @@ const normalizeCoauthors = (list = []) =>
     })
     .filter(Boolean);
 
-const SAMPLE_OTHER_CREATED = [
-  {
-    id: "other-data-viz",
-    title: "Data Visualization Hub",
-    contributor: "Lara Cooper",
-    tags: ["UX/UI", "Database"],
-    image:
-      "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "other-urban-mobility",
-    title: "Urban Mobility Planner",
-    contributor: "Lara Cooper",
-    tags: ["Transportation", "UX/UI"],
-    image:
-      "https://ceo-na.com/wp-content/uploads/2019/01/urban-mobility.jpeg",
-  },
-];
-
-const SAMPLE_OTHER_SAVED = [
-  {
-    id: "other-ai-diagnostic",
-    title: "AI Diagnostic Assistant",
-    contributor: "Noah",
-    tags: ["Algorithm", "Digital Circuit"],
-    image:
-      "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=800&q=80",
-  },
-];
+const SAMPLE_OTHER_CREATED = [];
+const SAMPLE_OTHER_SAVED = [];
 
 export default function OtherProfilePage() {
   const { username } = useParams(); // e.g. /profile/lara-cooper
 
   const fallbackProfile = {
     avatar: "",
-    username: username ? username.replace(/-/g, " ") : "Lara Cooper",
-    description: "interested in Data Visualization",
-    followers: 100,
-    following: 10,
-    likes: 1000,
+    username: username ? username.replace(/-/g, " ") : "User",
+    description: "",
+    followers: 0,
+    following: 0,
+    likes: 0,
     showSavedPublicly: true,
+    isFollowing: false,
+    isBlocked: false,
   };
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
-
-  const savedProjects = SAMPLE_OTHER_SAVED;
+  const [savedProjects, setSavedProjects] = useState([]);
   // --- UI state ---
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Created");
@@ -122,6 +96,20 @@ export default function OtherProfilePage() {
         const list = await listProjects();
         if (canceled) return;
         setRemoteProjects(Array.isArray(list) ? list : []);
+
+        // Prep for backend support: attempt saved fetch when available
+        if (username && profile?.showSavedPublicly !== false) {
+          try {
+            const res = await fetch(`/api/users/${username}/saved`, { credentials: "include" });
+            if (!res.ok) throw new Error("saved endpoint unavailable");
+            const data = await res.json();
+            if (Array.isArray(data?.projects)) setSavedProjects(data.projects);
+          } catch {
+            setSavedProjects([]);
+          }
+        } else {
+          setSavedProjects([]);
+        }
       } catch {
         if (!canceled) setRemoteProjects([]);
       }
@@ -130,7 +118,7 @@ export default function OtherProfilePage() {
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [username, profile?.showSavedPublicly]);
 
   const createdProjects = useMemo(() => {
     if (!username) return SAMPLE_OTHER_CREATED;
@@ -187,16 +175,23 @@ export default function OtherProfilePage() {
         {/* Profile header */}
         <ProfileHeader profile={resolvedProfile} />
 
-        {/* Stats & Actions (Share/Follow/Menu handled inside ProfileStats) */}
+        {/* Stats & Actions */}
         <ProfileStats
           followers={resolvedProfile.followers}
           following={resolvedProfile.following}
-          likes={resolvedProfile.likes}
+          likes={resolvedProfile.likes || resolvedProfile.total_likes || 0}
           showLikes
           showEdit={false}
           showFollow
           showMenu
           onShare={() => setIsShareOpen(true)}
+          
+          // [FIX] Pass username and initial status for Follow logic
+          username={resolvedProfile.username}
+          userId={resolvedProfile._id}
+          isFollowingInitial={resolvedProfile.isFollowing}
+
+          isBlockedInitial={resolvedProfile.isBlocked}
         />
 
         {/* Tabs */}
@@ -213,7 +208,7 @@ export default function OtherProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, idx) => (
-                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} />
+                <ProjectCard key={project.id || `${project.title}-${idx}`} project={project} isOwner={false} />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">
@@ -227,7 +222,7 @@ export default function OtherProfilePage() {
             <div className="mt-8 flex justify-center">
               <Pagination
                 totalPages={totalPages}
-                currentPage={safePage}   // ensure prop names match your Pagination component
+                currentPage={safePage}
                 onChange={setPage}
               />
             </div>
@@ -244,4 +239,3 @@ export default function OtherProfilePage() {
     </div>
   );
 }
-

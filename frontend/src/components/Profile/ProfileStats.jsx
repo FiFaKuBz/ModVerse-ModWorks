@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CustomButton from "../common/CustomButton";
 import { Menu } from "lucide-react";
 import ProfileOptionsModal from "../common/ProfileOptionsModal";
 import { useNavigate } from "react-router-dom";
+import { followUser, unfollowUser } from "../../api/profile";
 
 export default function ProfileStats({
   followers = 0,
@@ -14,14 +15,43 @@ export default function ProfileStats({
   showMenu = false,
   onShare, // passed from ProfilePage
   onEdit,  // passed from ProfilePage
+  username,
+  userId,
+  isFollowingInitial = false,
+  isBlockedInitial = false
 }) {
   const navigate = useNavigate();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(isFollowingInitial);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleFollowToggle = () => {
-    setIsFollowing((prev) => !prev);
-    // 🔸 Future backend call here if needed
+  // Update local state if prop changes
+  useEffect(() => {
+    setIsFollowing(isFollowingInitial);
+  }, [isFollowingInitial]);
+
+  const handleFollowToggle = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    // Optimistic toggle
+    const oldState = isFollowing;
+    setIsFollowing(!oldState);
+
+    let success;
+    if (oldState) {
+        success = await unfollowUser(username);
+    } else {
+        success = await followUser(username);
+    }
+
+    if (!success) {
+        // Revert if API fails
+        setIsFollowing(oldState);
+        alert("Action failed");
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -62,6 +92,7 @@ export default function ProfileStats({
           <CustomButton
             variant="follow"
             onClick={handleFollowToggle}
+            disabled={isLoading}
             className={`${
               isFollowing
                 ? "bg-gray-200 text-black border border-gray-400 hover:bg-gray-300"
@@ -95,7 +126,11 @@ export default function ProfileStats({
       <ProfileOptionsModal
         isOpen={isOptionsOpen}
         onClose={() => setIsOptionsOpen(false)}
+        username={username} 
+        userId={userId}
+        isBlockedInitial={isBlockedInitial}
       />
     </div>
   );
 }
+

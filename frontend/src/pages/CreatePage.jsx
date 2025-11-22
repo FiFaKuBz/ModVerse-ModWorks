@@ -112,7 +112,7 @@ export default function CreatePage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    title: "",
+    title: "", 
     topic: "",
     startPoint: "",
     goal: "",
@@ -198,12 +198,13 @@ export default function CreatePage() {
       categories: form.categories,
       image: coverImage[0] || "",
       createdAt: now,
+      updatedAt: now,
       metrics7d: { likes: 0, saves: 0, comments: 0 },
       public: !!form.isPublic,
       comments: !!form.allowComments,
       coauthors: form.coauthors,
       detail: {
-        summary: form.topic,
+        topic: form.topic,
         startPoint: form.startPoint,
         goal: form.goal,
         process: form.process,

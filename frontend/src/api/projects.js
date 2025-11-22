@@ -31,20 +31,39 @@ const request = async(endpoint, options) => {
     return res.json();
 };
 
+const mapProject = (p = {}) => {
+    if (!p || typeof p !== "object") return p;
+    const id = p._id || p.id;
+    const ownerId = p.ownerId || p.owner_id;
+    const createdAt = p.createdAt || p.created_at || p.created;
+    const updatedAt = p.updatedAt || p.updated_at || p.updated;
+    const metrics7d =
+        p.metrics7d && typeof p.metrics7d === "object" ? p.metrics7d : {};
+    return {
+        ...p,
+        ...(id ? { id } : {}),
+        ...(ownerId ? { ownerId } : {}),
+        ...(createdAt ? { createdAt } : {}),
+        ...(updatedAt ? { updatedAt } : {}),
+        metrics7d: {
+            likes: Number.isFinite(metrics7d.likes) ? metrics7d.likes : 0,
+            saves: Number.isFinite(metrics7d.saves) ? metrics7d.saves : 0,
+            comments: Number.isFinite(metrics7d.comments) ? metrics7d.comments : 0,
+        },
+    };
+};
+
 // GET /api/projects
 export async function listProjects() {
     try {
         const remote = await request("/public", { method: "GET" });
         if (remote && remote.success && Array.isArray(remote.projects)) {
-            const projectsWithId = remote.projects.map(p => ({
-                ...p,
-                id: p._id || p.id // ใช้ _id หากมี, ไม่งั้นใช้ id เดิม (สำหรับ fallback)
-            }));
+            const projectsWithId = remote.projects.map(mapProject);
             return ensureArray(projectsWithId);
         }
         throw new Error("Invalid response format from public projects API.");
     } catch {
-        return readLocalProjects();
+        return ensureArray(readLocalProjects().map(mapProject));
     }
 }
 
@@ -52,11 +71,16 @@ export async function listProjects() {
 export async function getProject(id) {
     try {
         const remote = await request(`/${id}`, { method: "GET" });
-        if (remote) return remote;
+        if (remote ?.project) return mapProject(remote.project);
+        if (remote) return mapProject(remote);
     } catch {
         // fallback below
     }
-    return readLocalProjects().find((p) => p.id === id) || null;
+    return (
+        readLocalProjects()
+        .map(mapProject)
+        .find((p) => p.id === id) || null
+    );
 }
 
 const generateLocalId = () => `u-${Date.now()}`;
@@ -68,7 +92,8 @@ export async function createProject(project) {
             method: "POST",
             body: JSON.stringify(project),
         });
-        if (created) return created;
+        if (created ?.project) return mapProject(created.project);
+        if (created) return mapProject(created);
     } catch {
         // fall through to local storage
     }
@@ -97,4 +122,64 @@ export async function updateProject(id, updates) {
     list[index] = merged;
     writeLocalProjects(list);
     return merged;
+}
+
+// POST /api/projects/:id/comments
+export async function addComment(projectId, text) {
+    try {
+        const res = await request(`/${projectId}/comments`, {
+            method: "POST",
+            body: JSON.stringify({ text }),
+        });
+        return res.comment;
+    } catch (e) {
+        console.error("Failed to add comment", e);
+        return null;
+    }
+}
+
+// GET /api/projects/:id/comments
+export async function getComments(projectId) {
+    try {
+        const res = await request(`/${projectId}/comments`, { method: "GET" });
+        return ensureArray(res.comments);
+    } catch {
+        return [];
+    }
+}
+
+// POST /api/projects/:id/like
+export async function likeProject(id) {
+    try {
+        const res = await request(`/${id}/like`, {
+            method: "POST",
+        });
+        return res.data;
+    } catch {
+        return null;
+    }
+}
+
+// POST /api/projects/:id/dislike
+export async function dislikeProject(id) {
+    try {
+        const res = await request(`/${id}/dislike`, {
+            method: "POST",
+        });
+        return res.data;
+    } catch {
+        return null;
+    }
+}
+
+// POST /api/projects/:id/save
+export async function saveProject(id) {
+    try {
+        const res = await request(`/${id}/save`, {
+            method: "POST",
+        });
+        return res.data;
+    } catch {
+        return null;
+    }
 }
