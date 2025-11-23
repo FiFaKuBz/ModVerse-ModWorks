@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import SessionProvider from "./session/SessionProvider";
+import { NotificationProvider } from "./session/NotificationContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       {/* Anything that uses useNavigate/useLocation must be inside Router */}
       <SessionProvider>
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </SessionProvider>
     </BrowserRouter>
   </React.StrictMode>
