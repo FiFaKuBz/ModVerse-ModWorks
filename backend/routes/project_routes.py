@@ -9,16 +9,30 @@ from datetime import datetime, timezone
 project_bp = Blueprint("project", __name__)
 
 project_model = None
+# backend/routes/project_routes.py
+from flask import Blueprint, request, jsonify, session
+from bson import ObjectId
+from bson.errors import InvalidId
+from ..auth.decorators import login_required
+import uuid
+from datetime import datetime, timezone
+
+project_bp = Blueprint("project", __name__)
+
+project_model = None
 user_model = None
 tag_model = None
+tag_model = None
 interaction_model = None
+notification_model = None
 
-def init_project_routes(p_model, t_model, u_model, i_model):
-    global project_model, tag_model, user_model, interaction_model
+def init_project_routes(p_model, t_model, u_model, i_model, n_model):
+    global project_model, tag_model, user_model, interaction_model, notification_model
     project_model = p_model
     tag_model = t_model
     user_model = u_model
     interaction_model = i_model
+    notification_model = n_model
 
 # ✅ แก้ไขคำผิดจาก categorys เป็น categories
 @project_bp.route("/categories", methods=["GET"])
@@ -235,6 +249,19 @@ def like_project(project_id):
         pid = ObjectId(project_id)
         user_id = ObjectId(session["user"]["id"])
         result = interaction_model.toggle_like(user_id, pid)
+        
+        # Notify owner if liked
+        if result.get("isLiked"):
+            project = project_model.get(pid)
+            if project and str(project["owner_id"]) != str(user_id):
+                notification_model.create_notification(
+                    recipient_id=project["owner_id"],
+                    sender_id=user_id,
+                    type="like",
+                    message=f"liked your project: {project.get('title')}",
+                    project_id=pid
+                )
+        
         return jsonify({"success": True, "data": result}), 200
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
@@ -307,6 +334,17 @@ def add_comment(project_id):
         new_comment = project_model.add_comment(pid, user, text)
         
         if new_comment:
+            # Notify owner
+            project = project_model.get(pid)
+            if project and str(project["owner_id"]) != str(session["user"]["id"]):
+                notification_model.create_notification(
+                    recipient_id=project["owner_id"],
+                    sender_id=session["user"]["id"],
+                    type="comment",
+                    message=f"commented on your project: {project.get('title')}",
+                    project_id=pid
+                )
+            
             return jsonify({"success": True, "comment": new_comment}), 201
         else:
             return jsonify({"error": "Failed to add comment"}), 400

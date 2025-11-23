@@ -6,21 +6,23 @@ from typing import List, Optional
 
 user_bp = Blueprint("user", __name__)
 
-# จะถูก inject จาก app.py
+# Will be injected from app.py
 user_model = None
 project_model = None
 report_model = None
+notification_model = None
 
-def init_user_routes(model, p_model, r_model):
-    global user_model, project_model, report_model
+def init_user_routes(model, p_model, r_model, n_model):
+    global user_model, project_model, report_model, notification_model
     user_model = model
     project_model = p_model
     report_model = r_model
+    notification_model = n_model
 
 @user_bp.route("/profile")
 @role_required()
 def whoami():
-    """แสดงข้อมูลผู้ใช้ที่ล็อกอินอยู่"""
+    """Show logged-in user info"""
     u = session.get("user")
     if not u:
         return jsonify(auth=False), 401
@@ -34,13 +36,13 @@ def whoami():
     if not user_doc:
         return jsonify(auth=False), 404
         
-    # [NEW] Calculate total likes
+    # Calculate total likes
     if project_model:
         total_likes = project_model.get_total_likes(oid)
         user_doc["total_likes"] = total_likes
         user_doc["likes"] = total_likes # Map to 'likes' for frontend consistency
     
-    # [NEW] Convert lists to counts for Frontend display
+    # Convert lists to counts for Frontend display
     user_doc["followers"] = len(user_doc.get("followers", []))
     user_doc["following"] = len(user_doc.get("following", []))
         
@@ -49,8 +51,8 @@ def whoami():
 @user_bp.route("/dashboard")
 @role_required()
 def dashboard():
-    """หน้า dashboard สำหรับผู้ใช้ที่ล็อกอินแล้ว"""
-    return f"ยินดีต้อนรับ {session['user']['name']}!"
+    """Dashboard for logged-in users"""
+    return f"Welcome {session['user']['name']}!"
 
 @user_bp.route("/profile/update", methods=["PATCH", "PUT"])
 @role_required()
@@ -93,16 +95,15 @@ def update_profile():
 @user_bp.route("/<username>", methods=["GET"])
 def get_public_profile(username):
     """
-    ดึงข้อมูลโปรไฟล์สาธารณะของผู้ใช้ (Public Profile)
-    ใช้สำหรับดูโปรไฟล์คนอื่น หรือค้นหาเพื่อเพิ่ม Co-author
+    Get public profile by username
     """
-    # ค้นหา User จาก Model
+    # Find User from Model
     user = user_model.get_user_by_username(username)
     
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    # แปลง ObjectId เป็น String ก่อนส่งกลับ
+    # Convert ObjectId to String
     if "_id" in user:
         user_oid = ObjectId(user["_id"])
         user["_id"] = str(user["_id"])
@@ -112,9 +113,9 @@ def get_public_profile(username):
             user["total_likes"] = total_likes
             user["likes"] = total_likes
 
-    # [NEW] Check isFollowing status and Calculate counts
+    # Check isFollowing status and Calculate counts
     is_following = False
-    is_blocked = False  # ✅ เพิ่มตัวแปรนี้
+    is_blocked = False
     
     if "user" in session:
         current_user_id = session["user"]["id"] # session stores ID as string
@@ -124,8 +125,7 @@ def get_public_profile(username):
         if current_user_id in followers_list:
             is_following = True
             
-        # ✅ เช็ค Block Status
-        # (เรียกใช้ฟังก์ชัน is_blocked ที่เราเพิ่งเพิ่มใน Model)
+        # Check Block Status
         try:
             is_blocked = user_model.is_blocked(ObjectId(current_user_id), str(user["_id"]))
         except Exception as e:
@@ -135,11 +135,11 @@ def get_public_profile(username):
     user["followers"] = len(user.get("followers", []))
     user["following"] = len(user.get("following", []))
     user["isFollowing"] = is_following
-    user["isBlocked"] = is_blocked # ✅ ส่งค่านี้กลับไปให้ Frontend
+    user["isBlocked"] = is_blocked
 
     return jsonify(user), 200
 
-# --- NEW: ADMIN-ONLY ROUTE FOR RBAC DEMO ---
+# --- ADMIN-ONLY ROUTE FOR RBAC DEMO ---
 @user_bp.route("/admin_panel")
 @role_required(allowed_roles="admin") # <<< RBAC ENFORCEMENT
 def admin_panel():
@@ -162,6 +162,16 @@ def follow_user_route(username):
         target_id = ObjectId(target_user["_id"])
         
         success = user_model.follow_user(me_id, target_id)
+        
+        if success and notification_model:
+            notification_model.create_notification(
+                recipient_id=target_id,
+                sender_id=me_id,
+                type="follow",
+                message="started following you",
+                project_id=None
+            )
+            
         return jsonify({"success": success}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -182,14 +192,13 @@ def unfollow_user_route(username):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-# ✅ เปลี่ยนจากรับ <username> เป็น <user_id>
 @user_bp.route("/block/<user_id>", methods=["POST"])
 @role_required()
 def block_user_route(user_id):
     try:
         me_id = ObjectId(session["user"]["id"])
         
-        # แปลง user_id จาก URL (String) เป็น ObjectId ตรงๆ
+        # Convert user_id from URL (String) to ObjectId
         target_oid = ObjectId(user_id)
         
         success = user_model.block_user(me_id, target_oid)
@@ -199,14 +208,13 @@ def block_user_route(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ เปลี่ยนจากรับ <username> เป็น <user_id>
 @user_bp.route("/unblock/<user_id>", methods=["POST"])
 @role_required()
 def unblock_user_route(user_id):
     try:
         me_id = ObjectId(session["user"]["id"])
         
-        # แปลง user_id จาก URL (String) เป็น ObjectId ตรงๆ
+        # Convert user_id from URL (String) to ObjectId
         target_oid = ObjectId(user_id)
             
         success = user_model.unblock_user(me_id, target_oid)
@@ -232,7 +240,7 @@ def report_user_route(username):
         if not reason:
              return jsonify({"error": "Reason is required"}), 400
 
-        # ใช้ report_model ที่ inject เข้ามา
+        # Use injected report_model
         report_id = report_model.create_report(
             reporter_id=me_id,
             target_id=target_user["_id"],
