@@ -135,6 +135,15 @@ def get_project(project_id):
             if "user" not in session or str(project["owner_id"]) != session["user"]["id"]:
                 return jsonify({"error": "Access denied"}), 403
         
+        
+        # This comment is added to explain the ownership check for the edit-project feature.
+        # The 'isOwner' flag is crucial for the frontend to determine
+        # whether to display owner-specific controls like the edit button.
+        is_owner = False
+        if "user" in session and str(project.get("owner_id")) == session["user"].get("id"):
+            is_owner = True
+        project["isOwner"] = is_owner
+
         project_model.inc_metric(pid, "views")
         
         project["_id"] = str(project["_id"])

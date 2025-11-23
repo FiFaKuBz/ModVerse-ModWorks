@@ -124,6 +124,19 @@ export async function updateProject(id, updates) {
     return merged;
 }
 
+// This comment is added to explain the deleteProject function.
+// This function sends a DELETE request to the backend API to remove a project.
+// It is called by the delete button on the ProjectCard component.
+export async function deleteProject(id) {
+    try {
+        await request(`/${id}`, { method: "DELETE" });
+        return true; // Indicate success
+    } catch (e) {
+        console.error("Failed to delete project", e);
+        return false; // Indicate failure
+    }
+}
+
 // POST /api/projects/:id/comments
 export async function addComment(projectId, text) {
     try {
