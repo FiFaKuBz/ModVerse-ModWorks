@@ -105,9 +105,11 @@ def list_public_projects():
         
         projects = project_model.list_public(search_query, status_filter)
         
+        session_user_id = session.get("user", {}).get("id")
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
+            p["isOwner"] = bool(session_user_id and p["owner_id"] == session_user_id)
             if "created_at" in p and p["created_at"]:
                 p["created_at"] = p["created_at"].isoformat()
             if "updated_at" in p and p["updated_at"]:
