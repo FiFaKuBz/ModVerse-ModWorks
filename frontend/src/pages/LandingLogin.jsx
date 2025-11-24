@@ -60,6 +60,13 @@ useEffect(() => {
         runBypass();
     }
 
+    // ✅ FIX: Handle standard login success (e.g. from Google OAuth callback)
+    const loginSuccess = searchParams.get("login_success") === "true";
+    if (loginSuccess) {
+        login();
+        navigate("/", { replace: true });
+    }
+
     // ส่วนของ Logic เดิม (auth=ok)
     // ...
 

@@ -1,23 +1,94 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
-export default function ProfileOptionsModal({ isOpen, onClose }) {
-  const [isBlocked, setIsBlocked] = useState(false);
+// ✅ รับทั้ง userId (สำหรับ Block) และ username (สำหรับ Report)
+export default function ProfileOptionsModal({ isOpen, onClose, userId, username, isBlockedInitial }) {
+  const [isBlocked, setIsBlocked] = useState(isBlockedInitial || false);
   const [showReportReasons, setShowReportReasons] = useState(false);
   const [otherReason, setOtherReason] = useState("");
 
+  // อัปเดตสถานะเมื่อเปิด Modal ใหม่ หรือค่าเริ่มต้นเปลี่ยน
+  useEffect(() => {
+    if (isOpen) {
+      setIsBlocked(isBlockedInitial || false);
+    }
+  }, [isOpen, isBlockedInitial]);
+
   if (!isOpen) return null;
 
-  const handleBlockToggle = () => {
-    setIsBlocked((prev) => !prev);
-    // 🔸 Future backend call (block/unblock user)
+  const handleBlockToggle = async () => {
+    // 1. จำค่าเดิมไว้เผื่อต้องแก้คืน
+    const oldState = isBlocked;
+    const newState = !oldState;
+
+    // 2. เปลี่ยนสถานะปุ่มทันที (Optimistic Update)
+    setIsBlocked(newState);
+
+    const action = newState ? "block" : "unblock";
+
+    try {
+      // 3. เรียก API จริงโดยใช้ userId
+      console.log(`${action}ing User ID:`, userId); 
+
+      if (!userId) {
+          alert("Error: User ID is missing!");
+          // Revert state immediately if userId is missing
+          setIsBlocked(oldState);
+          return;
+      }
+
+      // ✅ ใช้ userId สำหรับ Block/Unblock
+      const res = await fetch(`/api/users/${action}/${userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include" // ส่ง Session Cookie ไปด้วย
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update block status");
+      }
+    } catch (error) {
+      console.error(error);
+      // 4. ถ้าพัง แก้ค่ากลับเป็นเหมือนเดิม
+      setIsBlocked(oldState);
+      alert(`ไม่สามารถทำรายการได้: ${error.message}`);
+    }
   };
 
-  const handleReportSelect = (reason) => {
+  const handleReportSelect = async (reason) => {
     console.log("📩 Report sent:", reason);
-    setShowReportReasons(false);
-    setOtherReason("");
-    onClose(); // back to profile
+    
+    try {
+      // ✅ ใช้ username สำหรับ Report (ตาม Backend Route: /<username>/report)
+      if (!username) {
+          alert("Error: Username is missing for report!");
+          return;
+      }
+
+       const res = await fetch(`/api/users/${username}/report`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          reason: reason,
+          description: otherReason
+        })
+      });
+
+      if (res.ok) {
+        alert("ขอบคุณสำหรับการรายงาน ทีมงานจะตรวจสอบโดยเร็วที่สุด");
+        setShowReportReasons(false);
+        setOtherReason("");
+        onClose();
+      } else {
+        const data = await res.json();
+        alert(data.error || "เกิดข้อผิดพลาดในการส่งรายงาน");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    }
   };
 
   const handleOtherSubmit = (e) => {
