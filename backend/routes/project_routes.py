@@ -139,6 +139,7 @@ def get_project(project_id):
         
         project["_id"] = str(project["_id"])
         project["owner_id"] = str(project["owner_id"])
+        project["isOwner"] = bool("user" in session and str(project["owner_id"]) == session["user"]["id"])
         if "created_at" in project and project["created_at"]:
             project["created_at"] = project["created_at"].isoformat()
         if "updated_at" in project and project["updated_at"]:
