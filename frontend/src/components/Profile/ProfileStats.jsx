@@ -23,6 +23,7 @@ export default function ProfileStats({
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(isFollowingInitial);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [followerCount, setFollowerCount] = useState(followers);
   
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,13 +32,22 @@ export default function ProfileStats({
     setIsFollowing(isFollowingInitial);
   }, [isFollowingInitial]);
 
+  useEffect(() => {
+    setFollowerCount(followers);
+  }, [followers]);
+
   const handleFollowToggle = async () => {
     if (isLoading) return;
+    if (!username) {
+      alert("ชื่อผู้ใช้ไม่ถูกต้อง");
+      return;
+    }
     setIsLoading(true);
 
     // Optimistic toggle
     const oldState = isFollowing;
     setIsFollowing(!oldState);
+    setFollowerCount((prev) => prev + (oldState ? -1 : 1));
 
     let success;
     if (oldState) {
@@ -49,6 +59,7 @@ export default function ProfileStats({
     if (!success) {
         // Revert if API fails
         setIsFollowing(oldState);
+        setFollowerCount((prev) => prev + (oldState ? 1 : -1));
         alert("Action failed");
     }
     setIsLoading(false);
@@ -59,7 +70,7 @@ export default function ProfileStats({
       {/* Followers / Following */}
       <div className="flex flex-wrap justify-center gap-2 text-[14px] sm:text-[16px] md:text-[18px] text-black font-semibold">
         <p>
-          {followers} followers | {following} following
+          {followerCount} followers | {following} following
         </p>
       </div>
 

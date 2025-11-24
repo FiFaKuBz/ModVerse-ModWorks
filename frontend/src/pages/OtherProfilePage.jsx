@@ -184,6 +184,7 @@ export default function OtherProfilePage() {
           showEdit={false}
           showFollow
           showMenu
+          username={username}
           onShare={() => setIsShareOpen(true)}
           
           // [FIX] Pass username and initial status for Follow logic

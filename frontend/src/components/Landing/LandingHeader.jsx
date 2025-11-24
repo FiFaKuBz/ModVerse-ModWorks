@@ -10,7 +10,6 @@ export default function LandingHeader({
   selectedTopics = [],
   onChangeTopic,
   variant,
-  profile,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
