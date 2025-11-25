@@ -6,7 +6,9 @@ export default function ProjectCard({ project, isOwner = false }) {
 
   const handleClick = () => {
     if (project?.id) {
-      navigate(`/project/${project.id}`, { state: { project, isOwner } });
+      const state = { project };
+      if (isOwner === true) state.isOwner = true;
+      navigate(`/project/${project.id}`, { state });
     }
   };
 
