@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useSession } from "./SessionContext";
 
@@ -9,13 +10,13 @@ export function useNotification() {
 }
 
 export function NotificationProvider({ children }) {
-  const { session } = useSession();
+  const { expiresAt } = useSession();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    if (!session) return;
+    if (!expiresAt || Date.now() > expiresAt) return;
     try {
       const res = await fetch("/api/users/notifications/", { credentials: "include" });
       if (res.ok) {
@@ -26,7 +27,7 @@ export function NotificationProvider({ children }) {
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
-  }, [session]);
+  }, [expiresAt]);
 
   const markAsRead = async (id) => {
     try {
@@ -61,7 +62,7 @@ export function NotificationProvider({ children }) {
   };
 
   useEffect(() => {
-    if (session) {
+    if (expiresAt && Date.now() < expiresAt) {
       fetchNotifications();
       // Poll every 30 seconds
       const interval = setInterval(fetchNotifications, 30000);
@@ -70,7 +71,7 @@ export function NotificationProvider({ children }) {
         setNotifications([]);
         setUnreadCount(0);
     }
-  }, [session, fetchNotifications]);
+  }, [expiresAt, fetchNotifications]);
 
   return (
     <NotificationContext.Provider
