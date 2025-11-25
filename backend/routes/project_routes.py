@@ -106,6 +106,19 @@ def list_public_projects():
         
         projects = project_model.list_public(search_query, status_filter)
         session_user_id = session.get("user", {}).get("id")
+        # include private projects owned by this user
+        if session_user_id:
+            try:
+                owned = project_model.list_owned(ObjectId(session_user_id), search_query)
+            except InvalidId:
+                owned = []
+            else:
+                ids = {str(p.get("_id")) for p in projects}
+                for p in owned:
+                    if str(p.get("_id")) not in ids:
+                        projects.append(p)
+                        ids.add(str(p.get("_id")))
+
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
@@ -283,6 +296,12 @@ def add_comment(project_id):
         if not user_model:
             print("❌ Error: user_model is None in project_routes")
             return jsonify({"error": "Internal Server Error: User model not loaded"}), 500
+
+        project_doc = project_model.get(ObjectId(project_id))
+        if not project_doc:
+            return jsonify({"error": "Project not found"}), 404
+        if project_doc.get("allow_comments") is False:
+            return jsonify({"error": "Comments disabled"}), 403
 
         pid = ObjectId(project_id)
         data = request.get_json()

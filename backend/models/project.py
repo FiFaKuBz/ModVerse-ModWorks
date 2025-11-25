@@ -49,8 +49,8 @@ class ProjectModel:
         now = datetime.now(timezone.utc)
 
         # [FIX] Check both 'public' (Frontend) and 'isPublic' keys
-        is_public = payload.get("isPublic", True)
-        visibility_status = "public" if is_public else "private"
+        is_public = payload.get("isPublic", payload.get("public", True))
+        visibility_status = "public" if bool(is_public) else "private"
 
         doc = {
             "owner_id": owner_id,
