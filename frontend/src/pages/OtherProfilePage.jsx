@@ -190,6 +190,9 @@ export default function OtherProfilePage() {
           userId={resolvedProfile._id || resolvedProfile.id}
           isFollowingInitial={resolvedProfile.isFollowing}
           isBlockedInitial={resolvedProfile.isBlocked}
+          onBlockChange={(next) =>
+            setProfile((prev) => (prev ? { ...prev, isBlocked: next } : prev))
+          }
         />
 
         {/* Tabs */}

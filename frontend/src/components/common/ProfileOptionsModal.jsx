@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 // ✅ รับทั้ง userId (สำหรับ Block) และ username (สำหรับ Report)
-export default function ProfileOptionsModal({ isOpen, onClose, userId, username, isBlockedInitial }) {
+export default function ProfileOptionsModal({ isOpen, onClose, userId, username, isBlockedInitial, onBlockChange }) {
   const [isBlocked, setIsBlocked] = useState(isBlockedInitial || false);
   const [showReportReasons, setShowReportReasons] = useState(false);
   const [otherReason, setOtherReason] = useState("");
@@ -40,6 +40,7 @@ export default function ProfileOptionsModal({ isOpen, onClose, userId, username,
         const errorData = await res.json();
         throw new Error(errorData.error || "Failed to update block status");
       }
+      if (typeof onBlockChange === "function") onBlockChange(newState);
     } catch (error) {
       setIsBlocked(oldState);
       alert(`ไม่สามารถทำรายการได้: ${error.message}`);
