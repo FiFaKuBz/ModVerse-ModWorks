@@ -1,7 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { getTopicChipClass } from "../../constants/topicColors";
+// This comment is added to explain the import of the deleteProject function.
+// This function is needed to send the delete request to the backend API.
+import { deleteProject } from "../../api/projects";
 
-export default function ProjectCard({ project, isOwner = false }) {
+
+// This comment is added to explain the new onDelete prop.
+// The onDelete prop is a function passed from the parent component (ProfilePage)
+// to handle the removal of the project from the UI after deletion.
+export default function ProjectCard({ project, isOwner = false, onDelete }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -9,6 +16,22 @@ export default function ProjectCard({ project, isOwner = false }) {
       const state = { project };
       if (isOwner === true) state.isOwner = true;
       navigate(`/project/${project.id}`, { state });
+    }
+  };
+
+  // This comment is added to explain the handleDelete function.
+  // This function handles the click event of the delete button.
+  // It shows a confirmation dialog before proceeding with the deletion.
+  // It calls the deleteProject API and then the onDelete callback on success.
+  const handleDelete = async (e) => {
+    e.stopPropagation(); // Prevents the card's onClick from firing.
+    if (window.confirm(`Are you sure you want to delete "${project.title}"?`)) {
+      const success = await deleteProject(project.id);
+      if (success) {
+        onDelete(project.id); // Notify parent component to update the UI
+      } else {
+        alert("Failed to delete the project.");
+      }
     }
   };
 
@@ -21,6 +44,20 @@ export default function ProjectCard({ project, isOwner = false }) {
       onClick={handleClick}
       className="relative group cursor-pointer w-[292px] h-[273px] rounded-[20px] border border-gray-200 bg-white shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col overflow-hidden"
     >
+      {/* This comment is added to explain the delete button. */}
+      {/* The delete button is only rendered if the user is the owner of the project. */}
+      {/* It allows the user to delete their own project directly from their profile page. */}
+      {isOwner && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 right-2 z-10 p-1.5 bg-black/50 rounded-full text-white hover:bg-red-500 transition-colors"
+          aria-label="Delete project"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+      )}
       <div className="relative w-full aspect-[262/94] bg-mGrey overflow-hidden">
         {project?.image ? (
           <img
