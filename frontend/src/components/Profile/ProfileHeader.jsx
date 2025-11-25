@@ -21,7 +21,7 @@ export default function ProfileHeader({ profile }) {
 
       {/* Description / Bio */}
       <p className="text-[10px] sm:text-[12px] md:text-[14px] font-IBM text-black truncate max-w-[90%]">
-        {profile?.description || "description"}
+        {profile?.about || profile?.description || "No description provided"}
       </p>
 
       {/* Email (only visible for self-view) */}

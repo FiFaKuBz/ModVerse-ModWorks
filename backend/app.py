@@ -8,7 +8,10 @@ from .config import Config
 # Models
 from .models.user import UserModel
 from .models.project import ProjectModel
-from .models.category import TagModel  # ✅ 1. เพิ่ม Import TagModel
+from .models.category import TagModel
+from .models.report import ReportModel
+from .models.interactions import InteractionModel
+from .models.notification import NotificationModel
 
 # Auth & Services
 from .auth.google import GoogleOAuth
@@ -19,6 +22,7 @@ from .routes.auth_routes import auth_bp, init_auth_routes
 from .routes.users_routes import user_bp, init_user_routes
 from .routes.project_routes import project_bp, init_project_routes
 from .routes.search_routes import search_bp
+from .routes.notification_routes import notification_bp, init_notification_routes
 
 app = Flask(__name__, static_folder='../frontend/dist')
 
@@ -44,7 +48,10 @@ with app.app_context():
     # Initialize Models
     user_model = UserModel(mongo.db)
     project_model = ProjectModel(mongo.db)
-    tag_model = TagModel(mongo.db) # ✅ 2. สร้าง Instance ของ TagModel
+    tag_model = TagModel(mongo.db) 
+    report_model = ReportModel(mongo.db)
+    interaction_model = InteractionModel(mongo.db)
+    notification_model = NotificationModel(mongo.db)
     
     # สร้าง indexes
     project_model.ensure_indexes()
@@ -62,16 +69,17 @@ with app.app_context():
 
 # เตรียมค่าสำหรับ routes
 init_auth_routes(google_oauth, user_model, otp_service)
-init_user_routes(user_model, project_model)
-
+init_user_routes(user_model, project_model, report_model, notification_model)
 # ✅ 3. ส่ง tag_model เข้าไปใน init_project_routes ด้วย
-init_project_routes(project_model, tag_model, user_model)
+init_project_routes(project_model, tag_model, user_model, interaction_model, notification_model)
+init_notification_routes(notification_model)
 
 # ลงทะเบียน blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(user_bp, url_prefix='/api/users')
 app.register_blueprint(project_bp, url_prefix='/api/projects')
 app.register_blueprint(search_bp, url_prefix='/api/search')
+app.register_blueprint(notification_bp, url_prefix='/api/notifications')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

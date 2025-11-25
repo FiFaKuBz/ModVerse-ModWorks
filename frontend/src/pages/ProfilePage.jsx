@@ -181,6 +181,14 @@ export default function ProfilePage() {
   const start = (safePage - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
 
+  // This comment is added to explain the handleDeleteProject function.
+  // This function is passed as a prop to the ProjectCard component.
+  // It updates the component's state to remove the deleted project,
+  // which causes the UI to re-render without the deleted card.
+  const handleDeleteProject = (projectId) => {
+    setProjects((prevProjects) => prevProjects.filter((p) => p.id !== projectId));
+  };
+
   if (profileLoading && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
@@ -216,7 +224,12 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, i) => (
-                <ProjectCard key={project.id || `${project.title}-${i}`} project={project} isOwner />
+                <ProjectCard
+                  key={project.id || `${project.title}-${i}`}
+                  project={project}
+                  isOwner
+                  onDelete={handleDeleteProject}
+                />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">

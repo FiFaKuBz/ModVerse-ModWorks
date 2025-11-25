@@ -124,6 +124,19 @@ export async function updateProject(id, updates) {
     return merged;
 }
 
+// This comment is added to explain the deleteProject function.
+// This function sends a DELETE request to the backend API to remove a project.
+// It is called by the delete button on the ProjectCard component.
+export async function deleteProject(id) {
+    try {
+        await request(`/${id}`, { method: "DELETE" });
+        return true; // Indicate success
+    } catch (e) {
+        console.error("Failed to delete project", e);
+        return false; // Indicate failure
+    }
+}
+
 // POST /api/projects/:id/comments
 export async function addComment(projectId, text) {
     try {
@@ -148,26 +161,38 @@ export async function getComments(projectId) {
     }
 }
 
-// POST /api/projects/:id/interact
-export async function interactProject(id, action) {
-    // action = 'like' | 'dislike'
+// POST /api/projects/:id/like
+export async function likeProject(id) {
     try {
-        const res = await request(`/${id}/interact`, {
+        const res = await request(`/${id}/like`, {
             method: "POST",
-            body: JSON.stringify({ action }),
         });
-        return res.data; // Returns { likes: n, dislikes: n, isLiked: bool, isDisliked: bool }
+        return res.data;
+    } catch {
+        return null;
+    }
+}
+
+// POST /api/projects/:id/dislike
+export async function dislikeProject(id) {
+    try {
+        const res = await request(`/${id}/dislike`, {
+            method: "POST",
+        });
+        return res.data;
     } catch {
         return null;
     }
 }
 
 // POST /api/projects/:id/save
-export async function toggleSaveProject(id) {
+export async function saveProject(id) {
     try {
-        const res = await request(`/${id}/save`, { method: "POST" });
-        return res.isSaved;
+        const res = await request(`/${id}/save`, {
+            method: "POST",
+        });
+        return res.data;
     } catch {
-        return false;
+        return null;
     }
 }

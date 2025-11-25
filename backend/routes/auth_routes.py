@@ -90,7 +90,7 @@ def callback():
             "role": user_doc.get("role", "user"),
             "username": user_doc.get("username"),
         }
-        return redirect("/")
+        return redirect("/login?login_success=true")
 
     # --- SCENARIO B: New User OR 2FA Enabled -> REQUIRE OTP ---
     session["pending_google_info"] = google_info

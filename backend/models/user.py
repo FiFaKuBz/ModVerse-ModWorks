@@ -126,3 +126,37 @@ class UserModel:
         else:
             self.users.update_one({"_id": user_id}, {"$addToSet": {"saved_projects": project_id}})
             return True # Now saved
+
+    def block_user(self, blocker_id: ObjectId, target_id: ObjectId):
+        """
+        blocker_id: The ID of the user who is blocking
+        target_id: The ID of the user being blocked
+        """
+        if blocker_id == target_id:
+            return False
+
+        # Add target to blocker's 'blocked_users' list
+        self.users.update_one(
+            {"_id": blocker_id},
+            {"$addToSet": {"blocked_users": str(target_id)}}
+        )
+        
+        # Optional: Remove follow relationships
+        self.unfollow_user(blocker_id, target_id)
+        self.unfollow_user(target_id, blocker_id)
+        
+        return True
+
+    def unblock_user(self, blocker_id: ObjectId, target_id: ObjectId):
+        self.users.update_one(
+            {"_id": blocker_id},
+            {"$pull": {"blocked_users": str(target_id)}}
+        )
+        return True
+
+    def is_blocked(self, user_id: ObjectId, target_id: str):
+        """Check if user_id has blocked target_id"""
+        user = self.users.find_one({"_id": user_id}, {"blocked_users": 1})
+        if user and "blocked_users" in user:
+            return target_id in user["blocked_users"]
+        return False
