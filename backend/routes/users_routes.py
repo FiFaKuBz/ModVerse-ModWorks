@@ -3,6 +3,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from ..auth.decorators import role_required
 from typing import List, Optional
+from datetime import datetime, timezone
 
 user_bp = Blueprint("user", __name__)
 
@@ -291,8 +292,15 @@ def report_user_route(username):
 @role_required()
 def list_notifications():
     try:
-        # TODO: replace with real notification storage
-        return jsonify({"success": True, "notifications": [], "unreadCount": 0}), 200
+        user_id = session["user"]["id"]
+        col = user_model.users.database["notifications"]
+        docs = list(col.find({"receiver_id": user_id}).sort("created_at", -1))
+        for d in docs:
+            d["_id"] = str(d["_id"])
+            if isinstance(d.get("created_at"), datetime):
+                d["created_at"] = d["created_at"].isoformat()
+        unread = col.count_documents({"receiver_id": user_id, "is_read": {"$ne": True}})
+        return jsonify({"success": True, "notifications": docs, "unreadCount": unread}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -300,7 +308,9 @@ def list_notifications():
 @role_required()
 def mark_notification_read(nid):
     try:
-        # TODO: implement real read marker
+        user_id = session["user"]["id"]
+        col = user_model.users.database["notifications"]
+        col.update_one({"_id": ObjectId(nid), "receiver_id": user_id}, {"$set": {"is_read": True}})
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -309,7 +319,9 @@ def mark_notification_read(nid):
 @role_required()
 def mark_all_notifications_read():
     try:
-        # TODO: implement real bulk mark
+        user_id = session["user"]["id"]
+        col = user_model.users.database["notifications"]
+        col.update_many({"receiver_id": user_id, "is_read": {"$ne": True}}, {"$set": {"is_read": True}})
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

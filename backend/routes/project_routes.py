@@ -70,6 +70,33 @@ def create_project():
         
         # สร้างโปรเจกต์
         project_id = project_model.create(user_id, data)
+
+        # Notify followers about new project (simple fan-out)
+        try:
+            owner_doc = user_model.users.find_one({"_id": user_id}, {"followers": 1, "name": 1, "username": 1})
+            followers = owner_doc.get("followers", []) if owner_doc else []
+            if followers:
+                notif_col = project_model.col.database["notifications"]
+                now_iso = datetime.now(timezone.utc)
+                message = f"{owner_doc.get('username') or owner_doc.get('name') or 'User'} posted a new project"
+                docs = []
+                for fid in followers:
+                    try:
+                        docs.append({
+                            "receiver_id": str(fid),
+                            "sender_id": str(user_id),
+                            "project_id": str(project_id),
+                            "type": "new_project",
+                            "message": message,
+                            "created_at": now_iso,
+                            "is_read": False,
+                        })
+                    except Exception:
+                        continue
+                if docs:
+                    notif_col.insert_many(docs)
+        except Exception as e:
+            print(f"❌ Failed to enqueue notifications: {e}")
         
         print(f"✅ Project created successfully: {project_id}")
         

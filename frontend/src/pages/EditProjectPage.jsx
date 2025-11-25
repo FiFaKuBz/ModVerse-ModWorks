@@ -104,7 +104,7 @@ export default function EditProjectPage() {
     nextStep: "",
     categories: [],
     isPublic: true,
-    allowComments: false,
+    allowComments: true,
     coauthors: [],
   });
   const [coverImage, setCoverImage] = useState([]);
@@ -141,8 +141,8 @@ export default function EditProjectPage() {
           takeaway: detail.takeaway || "",
           nextStep: detail.nextStep || "",
           categories: project.tags || [],
-          isPublic: project.public ?? true,
-          allowComments: project.comments ?? false,
+          isPublic: project.visibility ? project.visibility !== "private" : project.public ?? project.isPublic ?? true,
+          allowComments: project.allow_comments ?? project.comments ?? true,
           coauthors: normalizeCoauthors(project.coauthors),
         });
         setCoverImage(project.image ? [project.image] : []);

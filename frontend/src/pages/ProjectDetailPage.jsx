@@ -1,5 +1,5 @@
 ﻿// src/pages/ProjectDetailPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
@@ -162,6 +162,7 @@ const DetailSection = ({ text, images }) => {
 const CommentPanel = ({
   commentText,
   onCommentChange,
+  onCommentSubmit,
   onReactProject,
   onSaveProject,
   likeState = DEFAULT_LIKE_STATE,
@@ -254,10 +255,15 @@ const CommentPanel = ({
     <div className="flex justify-end">
       <button 
         type="button"
-        disabled
-        className="font-An font-semibold text-base rounded-full px-8 py-2 shadow-sm bg-gray-300 text-gray-500 cursor-not-allowed"
+        onClick={onCommentSubmit}
+        disabled={disabled || !commentText.trim()}
+        className={`font-An font-semibold text-base rounded-full px-8 py-2 shadow-sm ${
+          disabled || !commentText.trim()
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-[#D35400] text-white hover:brightness-110 active:scale-95"
+        }`}
       >
-        คอมเมนต์ถูกปิด
+        {disabled ? "คอมเมนต์ถูกปิด" : "ส่ง"}
       </button>
     </div>
   </div>
@@ -299,6 +305,7 @@ const DetailColumn = ({
   // Props for comment functionality
   commentText,
   onCommentChange, 
+  onCommentSubmit,
   commentsList,
   likeState,
   isSaved,
@@ -414,24 +421,17 @@ const DetailColumn = ({
       </div>
     </div>
 
-  {project?.allow_comments === false ? (
-    <div className="mt-6 w-full rounded-xl border border-neutral-300 bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
-      คอมเมนต์ถูกปิดสำหรับโปรเจกต์นี้
-    </div>
-  ) : (
-    <>
-      <CommentPanel 
-        commentText={commentText} 
-        onCommentChange={onCommentChange} 
-        onReactProject={onReactProject}
-        onSaveProject={onSaveProject}
-        likeState={likeState}
-        isSaved={isSaved}
-        disabled={project?.allow_comments === false}
-      />
-      <PreviousComments comments={commentsList} />
-    </>
-  )}
+  <CommentPanel 
+    commentText={commentText} 
+    onCommentChange={onCommentChange} 
+    onCommentSubmit={onCommentSubmit}
+    onReactProject={onReactProject}
+    onSaveProject={onSaveProject}
+    likeState={likeState}
+    isSaved={isSaved}
+    disabled={project?.allow_comments === false}
+  />
+  <PreviousComments comments={commentsList} />
   </article>
 );
 
@@ -519,7 +519,7 @@ export default function ProjectDetailPage() {
     } catch {
         alert("Failed to post comment");
     }
-  }, [newCommentText, project?.allow_comments, expiresAt, id]);
+  }, [newCommentText, project, expiresAt, id]);
   // =====================
 
   const handleProjectReact = async (action) => {
@@ -713,6 +713,7 @@ export default function ProjectDetailPage() {
               // Pass comment state and handlers
               commentText={newCommentText}
               onCommentChange={setNewCommentText}
+              onCommentSubmit={handleCommentSubmit}
               onReactProject={handleProjectReact}
               onSaveProject={handleToggleSave}
               likeState={likeState || DEFAULT_LIKE_STATE}
