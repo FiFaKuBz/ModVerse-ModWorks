@@ -54,6 +54,36 @@ def dashboard():
     """Dashboard for logged-in users"""
     return f"Welcome {session['user']['name']}!"
 
+@user_bp.route("/profile/saved", methods=["GET"])
+@role_required()
+def get_saved_projects():
+    try:
+        user_id = ObjectId(session["user"]["id"])
+        user_doc = user_model.get_user_by_id(user_id)
+        saved_ids = user_doc.get("saved_projects", []) if user_doc else []
+        if not saved_ids:
+            return jsonify({"success": True, "projects": []}), 200
+
+        oid_list = []
+        for pid in saved_ids:
+            try:
+                oid_list.append(ObjectId(pid))
+            except InvalidId:
+                continue
+
+        projects = project_model.list_by_ids(oid_list, viewer_id=user_id)
+        for p in projects:
+            p["_id"] = str(p["_id"])
+            p["owner_id"] = str(p["owner_id"])
+            if "created_at" in p and p["created_at"]:
+                p["created_at"] = p["created_at"].isoformat()
+            if "updated_at" in p and p["updated_at"]:
+                p["updated_at"] = p["updated_at"].isoformat()
+
+        return jsonify({"success": True, "projects": projects}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @user_bp.route("/profile/update", methods=["PATCH", "PUT"])
 @role_required()
 def update_profile():
@@ -63,7 +93,7 @@ def update_profile():
 
         update_data = {}
         # Use frontend-friendly field names
-        allowed_fields = ["name", "username", "about", "avatar", "tags", "twoFactorEnabled"]
+        allowed_fields = ["name", "username", "about", "avatar", "tags", "twoFactorEnabled", "showSavedPublicly"]
 
         for field in allowed_fields:
             if field in data:
@@ -240,14 +270,46 @@ def report_user_route(username):
         if not reason:
              return jsonify({"error": "Reason is required"}), 400
 
-        # Use injected report_model
-        report_id = report_model.create_report(
-            reporter_id=me_id,
-            target_id=target_user["_id"],
-            reason=reason,
-            description=description
-        )
+        # Use injected report_model; fallback to log
+        if report_model:
+            report_id = report_model.create_report(
+                reporter_id=me_id,
+                target_id=target_user["_id"],
+                reason=reason,
+                description=description
+            )
+        else:
+            print(f"[REPORT] reporter={me_id} target={target_user['_id']} reason={reason} desc={description}")
+            report_id = None
         
-        return jsonify({"success": True, "reportId": str(report_id)}), 201
+        return jsonify({"success": True, "reportId": str(report_id) if report_id else None}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ---------------- Notifications (stubbed storage) ----------------
+@user_bp.route("/notifications/", methods=["GET"])
+@role_required()
+def list_notifications():
+    try:
+        # TODO: replace with real notification storage
+        return jsonify({"success": True, "notifications": [], "unreadCount": 0}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@user_bp.route("/notifications/<nid>/read", methods=["PATCH"])
+@role_required()
+def mark_notification_read(nid):
+    try:
+        # TODO: implement real read marker
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@user_bp.route("/notifications/read-all", methods=["PATCH"])
+@role_required()
+def mark_all_notifications_read():
+    try:
+        # TODO: implement real bulk mark
+        return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

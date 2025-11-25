@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useSession } from "./SessionContext";
 
@@ -16,7 +17,7 @@ export function NotificationProvider({ children }) {
   const fetchNotifications = useCallback(async () => {
     if (!session) return;
     try {
-      const res = await fetch("/api/notifications/");
+      const res = await fetch("/api/users/notifications/", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications);
@@ -29,8 +30,9 @@ export function NotificationProvider({ children }) {
 
   const markAsRead = async (id) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, {
+      const res = await fetch(`/api/users/notifications/${id}/read`, {
         method: "PATCH",
+        credentials: "include",
       });
       if (res.ok) {
         setNotifications((prev) =>
@@ -45,8 +47,9 @@ export function NotificationProvider({ children }) {
 
   const markAllAsRead = async () => {
     try {
-      const res = await fetch("/api/notifications/read-all", {
+      const res = await fetch("/api/users/notifications/read-all", {
         method: "PATCH",
+        credentials: "include",
       });
       if (res.ok) {
         setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));

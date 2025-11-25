@@ -144,6 +144,18 @@ class ProjectModel:
         if status: filt["status"] = status
         return list(self.col.find(filt).sort("updated_at", -1))
 
+    def list_by_ids(self, ids: list[ObjectId], viewer_id: ObjectId | None = None):
+        if not ids: return []
+        filt = {
+            "_id": {"$in": ids},
+            "is_deleted": {"$ne": True},
+            "$or": [
+                {"visibility": "public"},
+                {"owner_id": viewer_id} if viewer_id else {"owner_id": {"$exists": False}}
+            ]
+        }
+        return list(self.col.find(filt).sort("updated_at", -1))
+
     def inc_metric(self, pid: ObjectId, field: str, n=1):
         if field not in {"views","likes"}: return False
         r = self.col.update_one({"_id": pid}, {"$inc": {f"metrics.{field}": n}})

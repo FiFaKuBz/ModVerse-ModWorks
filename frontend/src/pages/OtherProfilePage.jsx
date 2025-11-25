@@ -50,6 +50,7 @@ export default function OtherProfilePage() {
     showSavedPublicly: true,
     isFollowing: false,
     isBlocked: false,
+    _id: null,
   };
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -184,14 +185,10 @@ export default function OtherProfilePage() {
           showEdit={false}
           showFollow
           showMenu
-          username={username}
           onShare={() => setIsShareOpen(true)}
-          
-          // [FIX] Pass username and initial status for Follow logic
           username={resolvedProfile.username}
-          userId={resolvedProfile._id}
+          userId={resolvedProfile._id || resolvedProfile.id}
           isFollowingInitial={resolvedProfile.isFollowing}
-
           isBlockedInitial={resolvedProfile.isBlocked}
         />
 
