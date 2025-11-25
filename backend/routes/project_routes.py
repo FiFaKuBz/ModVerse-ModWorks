@@ -84,6 +84,7 @@ def list_my_projects():
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
+            p["isOwner"] = True
             if "created_at" in p and p["created_at"]:
                 p["created_at"] = p["created_at"].isoformat()
             if "updated_at" in p and p["updated_at"]:
