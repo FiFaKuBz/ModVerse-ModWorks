@@ -10,7 +10,7 @@ import ProjectCard from "../components/Profile/ProjectCard";
 import ShareModal from "../components/common/ShareModal";
 import Pagination from "../components/common/Pagination";
 import { listProjects } from "../api/projects";
-import { getProfile } from "../api/profile";
+import { getProfile, getSavedProjects } from "../api/profile";
 
 const slugify = (value = "") =>
   value
@@ -61,18 +61,6 @@ const FALLBACK_PROFILE = {
   following: 0,
   likes: 0,
   showSavedPublicly: true,
-};
-
-const SAVED_KEY = "mv_saved_projects";
-
-const readSavedProjects = () => {
-  try {
-    const raw = localStorage.getItem(SAVED_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 };
 
 const pickSavedIds = (profile) => {
@@ -155,16 +143,18 @@ export default function ProfilePage() {
 
         setProjects(combined);
 
-        // Saved projects: prefer backend saved IDs, fall back to local cache
-        const savedList =
-          savedIds.length > 0
-            ? dataset.filter((p) => savedIds.includes(String(p.id)))
-            : readSavedProjects();
-        setSavedProjects(savedList);
+        // Saved projects: prefer backend saved IDs, fall back to backend saved list endpoint
+        if (savedIds.length > 0) {
+          const savedList = dataset.filter((p) => savedIds.includes(String(p.id)));
+          setSavedProjects(savedList);
+        } else {
+          const savedList = await getSavedProjects();
+          setSavedProjects(Array.isArray(savedList) ? savedList : []);
+        }
       } catch {
         if (!canceled) {
           setProjects(SAMPLE_CREATED);
-          setSavedProjects(savedIds.length ? [] : readSavedProjects());
+          setSavedProjects([]);
         }
       }
     };
@@ -180,6 +170,14 @@ export default function ProfilePage() {
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  // This comment is added to explain the handleDeleteProject function.
+  // This function is passed as a prop to the ProjectCard component.
+  // It updates the component's state to remove the deleted project,
+  // which causes the UI to re-render without the deleted card.
+  const handleDeleteProject = (projectId) => {
+    setProjects((prevProjects) => prevProjects.filter((p) => p.id !== projectId));
+  };
 
   if (profileLoading && !profile) {
     return (
@@ -199,6 +197,7 @@ export default function ProfilePage() {
         <ProfileStats
           followers={resolvedProfile.followers}
           following={resolvedProfile.following}
+          username={resolvedProfile.username}
           onShare={() => setIsShareOpen(true)}
           onEdit={() => navigate("/edit-profile")}
         />
@@ -216,7 +215,12 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,292px)] gap-y-[59px] gap-x-2 justify-center mx-auto">
             {pageItems.length ? (
               pageItems.map((project, i) => (
-                <ProjectCard key={project.id || `${project.title}-${i}`} project={project} isOwner />
+                <ProjectCard
+                  key={project.id || `${project.title}-${i}`}
+                  project={project}
+                  isOwner={activeTab === "Created"}
+                  onDelete={activeTab === "Created" ? handleDeleteProject : undefined}
+                />
               ))
             ) : (
               <p className="col-span-full text-center text-gray-400">

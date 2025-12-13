@@ -1,5 +1,5 @@
 ﻿// src/pages/ProjectDetailPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LandingHeader from "../components/Landing/LandingHeader";
@@ -167,6 +167,7 @@ const CommentPanel = ({
   onSaveProject,
   likeState = DEFAULT_LIKE_STATE,
   isSaved = false,
+  disabled = false,
 }) => {
   const safeLike = {
     likes: Number.isFinite(likeState?.likes) ? likeState.likes : 0,
@@ -181,10 +182,15 @@ const CommentPanel = ({
     </h3>
     <div className="relative mb-3">
       <textarea 
-        placeholder="เขียนสิ่งที่อยากบอกตรงนี้ได้เลย!"
-        value={commentText} // ✅ ADDED: Controlled input value
-        onChange={(e) => onCommentChange(e.target.value)} // ✅ ADDED: Change handler
-        className="w-full h-[120px] rounded-xl border border-[#D35400] p-4 text-sm outline-none resize-none placeholder-gray-400 text-black focus:ring-1 focus:ring-[#D35400]"
+        placeholder={disabled ? "คอมเมนต์ถูกปิดสำหรับโปรเจกต์นี้" : "เขียนสิ่งที่อยากบอกตรงนี้ได้เลย!"}
+        value={commentText}
+        onChange={(e) => onCommentChange(e.target.value)}
+        disabled={disabled}
+        className={`w-full h-[120px] rounded-xl border p-4 text-sm outline-none resize-none ${
+          disabled
+            ? "border-neutral-300 bg-neutral-100 text-neutral-500"
+            : "border-[#D35400] placeholder-gray-400 text-black focus:ring-1 focus:ring-[#D35400]"
+        }`}
       />
     </div>
 
@@ -248,16 +254,16 @@ const CommentPanel = ({
 
     <div className="flex justify-end">
       <button 
-        onClick={onCommentSubmit} // ✅ ADDED: Submit handler
-        disabled={!commentText.trim()} // ✅ ADDED: Disable if empty
-        className={`font-An font-semibold text-base rounded-full px-8 py-2 transition active:scale-95 shadow-sm
-          ${!commentText.trim() 
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-            : "bg-[#D35400] text-white hover:brightness-110"
-          }`
-        }
+        type="button"
+        onClick={onCommentSubmit}
+        disabled={disabled || !commentText.trim()}
+        className={`font-An font-semibold text-base rounded-full px-8 py-2 shadow-sm ${
+          disabled || !commentText.trim()
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-[#D35400] text-white hover:brightness-110 active:scale-95"
+        }`}
       >
-        ส่ง
+        {disabled ? "คอมเมนต์ถูกปิด" : "ส่ง"}
       </button>
     </div>
   </div>
@@ -416,15 +422,16 @@ const DetailColumn = ({
     </div>
 
   <CommentPanel 
-      commentText={commentText} 
-      onCommentChange={onCommentChange} 
-      onCommentSubmit={onCommentSubmit} 
-      onReactProject={onReactProject}
-      onSaveProject={onSaveProject}
-      likeState={likeState}
-      isSaved={isSaved}
-    />
-    <PreviousComments comments={commentsList} />
+    commentText={commentText} 
+    onCommentChange={onCommentChange} 
+    onCommentSubmit={onCommentSubmit}
+    onReactProject={onReactProject}
+    onSaveProject={onSaveProject}
+    likeState={likeState}
+    isSaved={isSaved}
+    disabled={project?.allow_comments === false}
+  />
+  <PreviousComments comments={commentsList} />
   </article>
 );
 
@@ -487,20 +494,17 @@ export default function ProjectDetailPage() {
     setIsSaved(Boolean(project.isSaved));
   }, [project]);
 
-  const handleCommentSubmit = async () => {
+  const handleCommentSubmit = useCallback(async () => {
     const text = newCommentText.trim();
-    if (!text) return;
+    if (!text || project?.allow_comments === false) return;
     
-    // Optimistic Update (Optional: Show immediately) or Wait for server
     if (!expiresAt) {
         alert("Please login to comment");
         return;
     }
 
     try {
-        // Call API
         const newComment = await addComment(id, text);
-        
         if (!newComment) {
           alert("Failed to post comment");
           return;
@@ -515,7 +519,7 @@ export default function ProjectDetailPage() {
     } catch {
         alert("Failed to post comment");
     }
-  };
+  }, [newCommentText, project, expiresAt, id]);
   // =====================
 
   const handleProjectReact = async (action) => {

@@ -140,3 +140,13 @@ export async function unfollowUser(username) {
         return false;
     }
 }
+
+export async function getSavedProjects() {
+    try {
+        const res = await request(`${API_USERS}/profile/saved`, { method: "GET" });
+        if (res && res.success && Array.isArray(res.projects)) return res.projects;
+    } catch {
+        // ignore
+    }
+    return [];
+}

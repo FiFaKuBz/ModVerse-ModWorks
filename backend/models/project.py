@@ -49,8 +49,8 @@ class ProjectModel:
         now = datetime.now(timezone.utc)
 
         # [FIX] Check both 'public' (Frontend) and 'isPublic' keys
-        is_public = payload.get("isPublic", True)
-        visibility_status = "public" if is_public else "private"
+        is_public = payload.get("isPublic", payload.get("public", True))
+        visibility_status = "public" if bool(is_public) else "private"
 
         doc = {
             "owner_id": owner_id,
@@ -142,6 +142,18 @@ class ProjectModel:
         if q: 
             filt["title"] = {"$regex": q, "$options": "i"}
         if status: filt["status"] = status
+        return list(self.col.find(filt).sort("updated_at", -1))
+
+    def list_by_ids(self, ids: list[ObjectId], viewer_id: ObjectId | None = None):
+        if not ids: return []
+        filt = {
+            "_id": {"$in": ids},
+            "is_deleted": {"$ne": True},
+            "$or": [
+                {"visibility": "public"},
+                {"owner_id": viewer_id} if viewer_id else {"owner_id": {"$exists": False}}
+            ]
+        }
         return list(self.col.find(filt).sort("updated_at", -1))
 
     def inc_metric(self, pid: ObjectId, field: str, n=1):
