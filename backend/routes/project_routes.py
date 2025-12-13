@@ -9,16 +9,30 @@ from datetime import datetime, timezone
 project_bp = Blueprint("project", __name__)
 
 project_model = None
+# backend/routes/project_routes.py
+from flask import Blueprint, request, jsonify, session
+from bson import ObjectId
+from bson.errors import InvalidId
+from ..auth.decorators import login_required
+import uuid
+from datetime import datetime, timezone
+
+project_bp = Blueprint("project", __name__)
+
+project_model = None
 user_model = None
 tag_model = None
+tag_model = None
 interaction_model = None
+notification_model = None
 
-def init_project_routes(p_model, t_model, u_model, i_model):
-    global project_model, tag_model, user_model, interaction_model
+def init_project_routes(p_model, t_model, u_model, i_model, n_model):
+    global project_model, tag_model, user_model, interaction_model, notification_model
     project_model = p_model
     tag_model = t_model
     user_model = u_model
     interaction_model = i_model
+    notification_model = n_model
 
 # ✅ แก้ไขคำผิดจาก categorys เป็น categories
 @project_bp.route("/categories", methods=["GET"])
@@ -56,6 +70,33 @@ def create_project():
         
         # สร้างโปรเจกต์
         project_id = project_model.create(user_id, data)
+
+        # Notify followers about new project (simple fan-out)
+        try:
+            owner_doc = user_model.users.find_one({"_id": user_id}, {"followers": 1, "name": 1, "username": 1})
+            followers = owner_doc.get("followers", []) if owner_doc else []
+            if followers:
+                notif_col = project_model.col.database["notifications"]
+                now_iso = datetime.now(timezone.utc)
+                message = f"{owner_doc.get('username') or owner_doc.get('name') or 'User'} posted a new project"
+                docs = []
+                for fid in followers:
+                    try:
+                        docs.append({
+                            "receiver_id": str(fid),
+                            "sender_id": str(user_id),
+                            "project_id": str(project_id),
+                            "type": "new_project",
+                            "message": message,
+                            "created_at": now_iso,
+                            "is_read": False,
+                        })
+                    except Exception:
+                        continue
+                if docs:
+                    notif_col.insert_many(docs)
+        except Exception as e:
+            print(f"❌ Failed to enqueue notifications: {e}")
         
         print(f"✅ Project created successfully: {project_id}")
         
@@ -84,6 +125,7 @@ def list_my_projects():
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
+            p["isOwner"] = True
             if "created_at" in p and p["created_at"]:
                 p["created_at"] = p["created_at"].isoformat()
             if "updated_at" in p and p["updated_at"]:
@@ -104,10 +146,24 @@ def list_public_projects():
         status_filter = request.args.get("status")
         
         projects = project_model.list_public(search_query, status_filter)
-        
+        session_user_id = session.get("user", {}).get("id")
+        # include private projects owned by this user
+        if session_user_id:
+            try:
+                owned = project_model.list_owned(ObjectId(session_user_id), search_query)
+            except InvalidId:
+                owned = []
+            else:
+                ids = {str(p.get("_id")) for p in projects}
+                for p in owned:
+                    if str(p.get("_id")) not in ids:
+                        projects.append(p)
+                        ids.add(str(p.get("_id")))
+
         for p in projects:
             p["_id"] = str(p["_id"])
             p["owner_id"] = str(p["owner_id"])
+            p["isOwner"] = bool(session_user_id and p["owner_id"] == session_user_id)
             if "created_at" in p and p["created_at"]:
                 p["created_at"] = p["created_at"].isoformat()
             if "updated_at" in p and p["updated_at"]:
@@ -135,10 +191,12 @@ def get_project(project_id):
             if "user" not in session or str(project["owner_id"]) != session["user"]["id"]:
                 return jsonify({"error": "Access denied"}), 403
         
+        
         project_model.inc_metric(pid, "views")
         
         project["_id"] = str(project["_id"])
         project["owner_id"] = str(project["owner_id"])
+        project["isOwner"] = bool("user" in session and str(project["owner_id"]) == session["user"]["id"])
         if "created_at" in project and project["created_at"]:
             project["created_at"] = project["created_at"].isoformat()
         if "updated_at" in project and project["updated_at"]:
@@ -226,6 +284,19 @@ def like_project(project_id):
         pid = ObjectId(project_id)
         user_id = ObjectId(session["user"]["id"])
         result = interaction_model.toggle_like(user_id, pid)
+        
+        # Notify owner if liked
+        if result.get("isLiked"):
+            project = project_model.get(pid)
+            if project and str(project["owner_id"]) != str(user_id):
+                notification_model.create_notification(
+                    recipient_id=project["owner_id"],
+                    sender_id=user_id,
+                    type="like",
+                    message=f"liked your project: {project.get('title')}",
+                    project_id=pid
+                )
+        
         return jsonify({"success": True, "data": result}), 200
     except InvalidId:
         return jsonify({"error": "Invalid project ID"}), 400
@@ -281,6 +352,12 @@ def add_comment(project_id):
             print("❌ Error: user_model is None in project_routes")
             return jsonify({"error": "Internal Server Error: User model not loaded"}), 500
 
+        project_doc = project_model.get(ObjectId(project_id))
+        if not project_doc:
+            return jsonify({"error": "Project not found"}), 404
+        if project_doc.get("allow_comments") is False:
+            return jsonify({"error": "Comments disabled"}), 403
+
         pid = ObjectId(project_id)
         data = request.get_json()
         text = data.get("text")
@@ -298,6 +375,17 @@ def add_comment(project_id):
         new_comment = project_model.add_comment(pid, user, text)
         
         if new_comment:
+            # Notify owner
+            project = project_model.get(pid)
+            if project and str(project["owner_id"]) != str(session["user"]["id"]):
+                notification_model.create_notification(
+                    recipient_id=project["owner_id"],
+                    sender_id=session["user"]["id"],
+                    type="comment",
+                    message=f"commented on your project: {project.get('title')}",
+                    project_id=pid
+                )
+            
             return jsonify({"success": True, "comment": new_comment}), 201
         else:
             return jsonify({"error": "Failed to add comment"}), 400
