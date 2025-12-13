@@ -37,6 +37,7 @@ const mapProject = (p = {}) => {
     const ownerId = p.ownerId || p.owner_id;
     const createdAt = p.createdAt || p.created_at || p.created;
     const updatedAt = p.updatedAt || p.updated_at || p.updated;
+    const isOwner = typeof p.isOwner === "boolean" ? p.isOwner : undefined;
     const metrics7d =
         p.metrics7d && typeof p.metrics7d === "object" ? p.metrics7d : {};
     return {
@@ -45,6 +46,7 @@ const mapProject = (p = {}) => {
         ...(ownerId ? { ownerId } : {}),
         ...(createdAt ? { createdAt } : {}),
         ...(updatedAt ? { updatedAt } : {}),
+        ...(typeof isOwner === "boolean" ? { isOwner } : {}),
         metrics7d: {
             likes: Number.isFinite(metrics7d.likes) ? metrics7d.likes : 0,
             saves: Number.isFinite(metrics7d.saves) ? metrics7d.saves : 0,
@@ -122,6 +124,19 @@ export async function updateProject(id, updates) {
     list[index] = merged;
     writeLocalProjects(list);
     return merged;
+}
+
+// This comment is added to explain the deleteProject function.
+// This function sends a DELETE request to the backend API to remove a project.
+// It is called by the delete button on the ProjectCard component.
+export async function deleteProject(id) {
+    try {
+        await request(`/${id}`, { method: "DELETE" });
+        return true; // Indicate success
+    } catch (e) {
+        console.error("Failed to delete project", e);
+        return false; // Indicate failure
+    }
 }
 
 // POST /api/projects/:id/comments

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 // ✅ รับทั้ง userId (สำหรับ Block) และ username (สำหรับ Report)
-export default function ProfileOptionsModal({ isOpen, onClose, userId, username, isBlockedInitial }) {
+export default function ProfileOptionsModal({ isOpen, onClose, userId, username, isBlockedInitial, onBlockChange }) {
   const [isBlocked, setIsBlocked] = useState(isBlockedInitial || false);
   const [showReportReasons, setShowReportReasons] = useState(false);
   const [otherReason, setOtherReason] = useState("");
@@ -17,40 +17,31 @@ export default function ProfileOptionsModal({ isOpen, onClose, userId, username,
   if (!isOpen) return null;
 
   const handleBlockToggle = async () => {
-    // 1. จำค่าเดิมไว้เผื่อต้องแก้คืน
     const oldState = isBlocked;
     const newState = !oldState;
-
-    // 2. เปลี่ยนสถานะปุ่มทันที (Optimistic Update)
     setIsBlocked(newState);
+
+    if (!userId) {
+      setIsBlocked(oldState);
+      alert("Error: User ID is missing!");
+      return;
+    }
 
     const action = newState ? "block" : "unblock";
 
     try {
-      // 3. เรียก API จริงโดยใช้ userId
-      console.log(`${action}ing User ID:`, userId); 
-
-      if (!userId) {
-          alert("Error: User ID is missing!");
-          // Revert state immediately if userId is missing
-          setIsBlocked(oldState);
-          return;
-      }
-
-      // ✅ ใช้ userId สำหรับ Block/Unblock
       const res = await fetch(`/api/users/${action}/${userId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include" // ส่ง Session Cookie ไปด้วย
+        credentials: "include"
       });
 
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Failed to update block status");
       }
+      if (typeof onBlockChange === "function") onBlockChange(newState);
     } catch (error) {
-      console.error(error);
-      // 4. ถ้าพัง แก้ค่ากลับเป็นเหมือนเดิม
       setIsBlocked(oldState);
       alert(`ไม่สามารถทำรายการได้: ${error.message}`);
     }

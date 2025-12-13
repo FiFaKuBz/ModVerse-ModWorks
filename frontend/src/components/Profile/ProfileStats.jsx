@@ -18,7 +18,8 @@ export default function ProfileStats({
   username,
   userId,
   isFollowingInitial = false,
-  isBlockedInitial = false
+  isBlockedInitial = false,
+  onBlockChange,
 }) {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(isFollowingInitial);
@@ -140,6 +141,7 @@ export default function ProfileStats({
         username={username} 
         userId={userId}
         isBlockedInitial={isBlockedInitial}
+        onBlockChange={onBlockChange}
       />
     </div>
   );
