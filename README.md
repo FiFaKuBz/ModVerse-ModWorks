@@ -1,4 +1,4 @@
-# CPE334 Final Project
+# ModVerse-ModWorks
 
 A comprehensive web application for managing projects and user profiles, built with a modern React frontend and a robust Flask backend.
 
